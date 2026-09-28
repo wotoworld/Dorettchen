@@ -240,57 +240,28 @@ async function analyze(){
   `;
 
   const loadingMessages=[
-    [
-      'Dein Profil nimmt Form an.',
-      'Deine Antworten werden zu einem Gesamtbild verbunden.'
-    ],
-    [
-      'Wir schauen genauer hin.',
-      'Besonders interessante Kombinationen werden herausgearbeitet.'
-    ],
-    [
-      'Muster werden verbunden.',
-      'Was passt zusammen – und was überraschend nicht?'
-    ],
-    [
-      'Deine Interessen bekommen Struktur.',
-      'Aus vielen einzelnen Antworten entsteht langsam ein klares Bild.'
-    ],
-    [
-      'Wir sind fast durch.',
-      'Die spannendsten Punkte werden für deinen Deep Dive vorbereitet.'
-    ]
+    ['Dein Profil nimmt Form an.','Deine Antworten werden zu einem Gesamtbild verbunden.'],
+    ['Wir schauen genauer hin.','Besonders interessante Kombinationen werden herausgearbeitet.'],
+    ['Muster werden verbunden.','Was passt zusammen – und was überraschend nicht?'],
+    ['Deine Interessen bekommen Struktur.','Aus vielen einzelnen Antworten entsteht langsam ein klares Bild.'],
+    ['Wir sind fast durch.','Die spannendsten Punkte werden für deinen Deep Dive vorbereitet.']
   ];
 
   let msgIndex=0;
 
-  // TIMER – jede Sekunde
   const timerInterval=setInterval(()=>{
-
-    const seconds=Math.floor(
-      (Date.now()-startTime)/1000
-    );
-
-    const min=String(
-      Math.floor(seconds/60)
-    ).padStart(2,'0');
-
-    const sec=String(
-      seconds%60
-    ).padStart(2,'0');
+    const seconds=Math.floor((Date.now()-startTime)/1000);
+    const min=String(Math.floor(seconds/60)).padStart(2,'0');
+    const sec=String(seconds%60).padStart(2,'0');
 
     const timer=document.getElementById('loadingTimer');
 
     if(timer){
       timer.textContent=`${min}:${sec}`;
     }
-
   },1000);
 
-
-  // TEXTE – alle 4 Sekunden
   const messageInterval=setInterval(()=>{
-
     msgIndex=(msgIndex+1)%loadingMessages.length;
 
     const title=document.getElementById('loadingTitle');
@@ -303,13 +274,10 @@ async function analyze(){
     if(text){
       text.textContent=loadingMessages[msgIndex][1];
     }
-
   },4000);
-
 
   try{
 
-    // JOB STARTEN
     const r=await fetch('/api/analyze',{
       method:'POST',
       headers:{
@@ -325,62 +293,18 @@ async function analyze(){
       throw Error(await r.text());
     }
 
-    const startData=await r.json();
+    const result=await r.json();
 
-    const jobId=startData.jobId;
+    clearInterval(timerInterval);
+    clearInterval(messageInterval);
 
-    if(!jobId){
-      throw Error('Keine Analyse-ID erhalten.');
-    }
+    s.profile=result;
+    s.follow=result.followup_questions||[];
+    s.fi=0;
+    s.phase='second';
 
-
-    // WARTEN BIS ANALYSE FERTIG IST
-    let finished=false;
-
-    while(!finished){
-
-      await new Promise(
-        resolve=>setTimeout(resolve,2000)
-      );
-
-      const statusResponse=await fetch(
-        `/api/analyze-status?jobId=${encodeURIComponent(jobId)}`
-      );
-
-      if(!statusResponse.ok){
-        throw Error(await statusResponse.text());
-      }
-
-      const status=await statusResponse.json();
-
-
-      if(status.status==='complete'){
-
-        finished=true;
-
-        clearInterval(timerInterval);
-        clearInterval(messageInterval);
-
-        s.profile=status.result;
-        s.follow=status.result.followup_questions||[];
-        s.fi=0;
-        s.phase='second';
-
-        save();
-        render();
-
-      }
-
-
-      if(status.status==='error'){
-
-        throw Error(
-          status.error||'Die Analyse konnte nicht abgeschlossen werden.'
-        );
-
-      }
-
-    }
+    save();
+    render();
 
   }catch(e){
 
@@ -389,7 +313,6 @@ async function analyze(){
 
     app.innerHTML=`
       <div class="card">
-
         <h2>Dein Profil konnte gerade nicht erstellt werden.</h2>
 
         <p class="muted">
@@ -398,12 +321,9 @@ async function analyze(){
         </p>
 
         <p>${esc(e.message)}</p>
-
       </div>
     `;
-
   }
-
 }
 function second(){if(!s.follow.length)return finalize();let q=s.follow[s.fi];app.innerHTML=`<div class="tiny">DEEP DIVE · ${s.fi+1} / ${s.follow.length}</div><div class="bar"><i style="width:${s.fi/s.follow.length*100}%"></i></div><div class="card"><h2 class="q">${esc(q.question)}</h2>${q.options.map((o,n)=>`<button class="opt" onclick="fpick(${n})">${esc(o)}</button>`).join('')}<button class="btn alt" onclick="fback()" style="margin-top:18px">← Zurück</button></div>`}
 function fpick(n){s.a['f'+s.follow[s.fi].id]=n;if(s.fi<s.follow.length-1){s.fi++;save();render()}else finalize()}
