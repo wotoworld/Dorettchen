@@ -1,19 +1,14 @@
 import OpenAI from "openai";
-import { waitUntil } from "@vercel/functions";
-import crypto from "crypto";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const REDIS_URL = process.env.STORAGE_KV_REST_API_URL;
-const REDIS_TOKEN = process.env.STORAGE_KV_REST_API_TOKEN;
-
 const system = `Du bist der Career Discovery Analyst.
 
 Deine Aufgabe ist es, aus den Antworten einer Person ein tiefes, individuelles Karriereprofil zu entwickeln.
 
-Keine psychologische Diagnose, kein endgültiges Urteil und keine Behauptung, dass eine Person "objektiv" für einen Beruf geeignet ist.
+Keine psychologische Diagnose, kein endgültiges Urteil und keine Behauptung, dass eine Person objektiv für einen Beruf geeignet ist.
 
 Analysiere insbesondere:
 - Kreativität
@@ -89,53 +84,6 @@ Das JSON muss exakt diese Struktur haben:
 
 Die Antworten sollen auf den tatsächlichen Antworten der Person basieren. Nichts erfinden.`;
 
-async function redisSet(key, value) {
-  const response = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(JSON.stringify(value))}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${REDIS_TOKEN}`
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Redis SET failed: ${response.status}`);
-  }
-}
-
-async function runAnalysis(jobId, body) {
-  try {
-    const r = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-      reasoning: { effort: "high" },
-      input: [
-        {
-          role: "system",
-          content: system
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            questions: body.questions,
-            answers: body.answers
-          })
-        }
-      ]
-    });
-
-    const result = JSON.parse(r.output_text);
-
-    await redisSet(`career-job:${jobId}`, {
-      status: "complete",
-      result
-    });
-  } catch (error) {
-    await redisSet(`career-job:${jobId}`, {
-      status: "error",
-      error: error.message
-    });
-  }
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -144,21 +92,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    const jobId = crypto.randomUUID();
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY fehlt");
+    }
 
-    await redisSet(`career-job:${jobId}`, {
-      status: "running"
+    const { questions, answers } = req.body || {};
+
+    if (!questions || !answers) {
+      throw new Error("Questions oder Answers fehlen");
+    }
+
+    const result = await client.responses.create({
+      model: "gpt-5.6-sol",
+      reasoning: {
+        effort: "high"
+      },
+      input: [
+        {
+          role: "system",
+          content: system
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            questions,
+            answers
+          })
+        }
+      ]
     });
 
-    waitUntil(runAnalysis(jobId, req.body));
+    const parsed = JSON.parse(result.output_text);
 
-    return res.status(202).json({
-      jobId
-    });
+    return res.status(200).json(parsed);
 
   } catch (error) {
+    console.error("ANALYZE ERROR:", error);
+
     return res.status(500).json({
-      error: error.message
+      error: error.message || "Analyse fehlgeschlagen"
     });
   }
 }
