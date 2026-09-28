@@ -211,95 +211,199 @@ function rankNext(){let v=s.a[Q[s.i].id]||[];if(v.length!==4||v.some(x=>!x)||new
 function next(){if(s.i<Q.length-1){s.i++;save();render()}else analyze()}
 function back(){if(s.i){s.i--;render()}}
 async function analyze(){
+
   s.phase='analysis';
 
-  let startTime=Date.now();
+  const startTime=Date.now();
 
   app.innerHTML=`
-  <div class="hero loadingHero">
-    <div class="tiny">DEIN PROFIL ENTSTEHT</div>
-    <h1>Wir lesen zwischen den Antworten.</h1>
+    <div class="hero loadingHero">
+      <div class="tiny">DEIN PROFIL ENTSTEHT</div>
 
-    <div class="loadingScene">
-      <div class="loadingCharacter">◡̈</div>
-      <div class="loadingDesk"></div>
-      <div class="loadingPaper"></div>
-      <div class="loadingPen"></div>
+      <h1>Wir lesen zwischen den Antworten.</h1>
+
+      <div class="loadingScene">
+        <div class="loadingCharacter">◡̈</div>
+        <div class="loadingDesk"></div>
+        <div class="loadingPaper"></div>
+        <div class="loadingPen"></div>
+      </div>
+
+      <div class="loadingTimer" id="loadingTimer">00:00</div>
+
+      <h3 id="loadingTitle">Dein Profil nimmt Form an.</h3>
+
+      <p class="muted" id="loadingText">
+        Deine Antworten werden zu einem Gesamtbild verbunden.
+      </p>
     </div>
-
-    <div class="loadingTimer" id="loadingTimer">00:00</div>
-
-    <h3 id="loadingTitle">Doro liest gerade zwischen den Zeilen.</h3>
-
-    <p class="muted" id="loadingText">
-      Muster werden verbunden und interessante Kombinationen herausgearbeitet.
-    </p>
-  </div>`;
+  `;
 
   const loadingMessages=[
-    ['Doro liest gerade zwischen den Zeilen.','Muster und Gemeinsamkeiten werden verbunden.'],
-    ['Doro entdeckt gerade Widersprüche.','Besonders spannende Antworten werden genauer betrachtet.'],
-    ['Doro sortiert gerade deine Interessen.','Was passt zusammen – und was überraschend nicht?'],
-    ['Doro baut gerade dein persönliches Profil.','Aus vielen einzelnen Antworten entsteht langsam ein Gesamtbild.'],
-    ['Doro schaut noch einmal genauer hin.','Die interessanten Kombinationen bekommen gerade ihren Platz.']
+    [
+      'Dein Profil nimmt Form an.',
+      'Deine Antworten werden zu einem Gesamtbild verbunden.'
+    ],
+    [
+      'Wir schauen genauer hin.',
+      'Besonders interessante Kombinationen werden herausgearbeitet.'
+    ],
+    [
+      'Muster werden verbunden.',
+      'Was passt zusammen – und was überraschend nicht?'
+    ],
+    [
+      'Deine Interessen bekommen Struktur.',
+      'Aus vielen einzelnen Antworten entsteht langsam ein klares Bild.'
+    ],
+    [
+      'Wir sind fast durch.',
+      'Die spannendsten Punkte werden für deinen Deep Dive vorbereitet.'
+    ]
   ];
 
   let msgIndex=0;
 
-  const loadingInterval=setInterval(()=>{
-    const seconds=Math.floor((Date.now()-startTime)/1000);
-    const min=String(Math.floor(seconds/60)).padStart(2,'0');
-    const sec=String(seconds%60).padStart(2,'0');
+  // TIMER – jede Sekunde
+  const timerInterval=setInterval(()=>{
+
+    const seconds=Math.floor(
+      (Date.now()-startTime)/1000
+    );
+
+    const min=String(
+      Math.floor(seconds/60)
+    ).padStart(2,'0');
+
+    const sec=String(
+      seconds%60
+    ).padStart(2,'0');
 
     const timer=document.getElementById('loadingTimer');
-    if(timer)timer.textContent=`${min}:${sec}`;
+
+    if(timer){
+      timer.textContent=`${min}:${sec}`;
+    }
+
+  },1000);
+
+
+  // TEXTE – alle 4 Sekunden
+  const messageInterval=setInterval(()=>{
 
     msgIndex=(msgIndex+1)%loadingMessages.length;
 
     const title=document.getElementById('loadingTitle');
     const text=document.getElementById('loadingText');
 
-    if(title)title.textContent=loadingMessages[msgIndex][0];
-    if(text)text.textContent=loadingMessages[msgIndex][1];
+    if(title){
+      title.textContent=loadingMessages[msgIndex][0];
+    }
+
+    if(text){
+      text.textContent=loadingMessages[msgIndex][1];
+    }
 
   },4000);
 
+
   try{
-    let r=await fetch('/api/analyze',{
+
+    // JOB STARTEN
+    const r=await fetch('/api/analyze',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json'
+      },
       body:JSON.stringify({
         questions:Q,
         answers:s.a
       })
     });
 
-    if(!r.ok)throw Error(await r.text());
+    if(!r.ok){
+      throw Error(await r.text());
+    }
 
-    clearInterval(loadingInterval);
+    const startData=await r.json();
 
-    let d=await r.json();
+    const jobId=startData.jobId;
 
-    s.profile=d;
-    s.follow=d.followup_questions||[];
-    s.fi=0;
-    s.phase='second';
+    if(!jobId){
+      throw Error('Keine Analyse-ID erhalten.');
+    }
 
-    save();
-    render();
+
+    // WARTEN BIS ANALYSE FERTIG IST
+    let finished=false;
+
+    while(!finished){
+
+      await new Promise(
+        resolve=>setTimeout(resolve,2000)
+      );
+
+      const statusResponse=await fetch(
+        `/api/analyze-status?jobId=${encodeURIComponent(jobId)}`
+      );
+
+      if(!statusResponse.ok){
+        throw Error(await statusResponse.text());
+      }
+
+      const status=await statusResponse.json();
+
+
+      if(status.status==='complete'){
+
+        finished=true;
+
+        clearInterval(timerInterval);
+        clearInterval(messageInterval);
+
+        s.profile=status.result;
+        s.follow=status.result.followup_questions||[];
+        s.fi=0;
+        s.phase='second';
+
+        save();
+        render();
+
+      }
+
+
+      if(status.status==='error'){
+
+        throw Error(
+          status.error||'Die Analyse konnte nicht abgeschlossen werden.'
+        );
+
+      }
+
+    }
 
   }catch(e){
 
-    clearInterval(loadingInterval);
+    clearInterval(timerInterval);
+    clearInterval(messageInterval);
 
     app.innerHTML=`
-    <div class="card">
-      <h2>Dein Profil konnte gerade nicht erstellt werden.</h2>
-      <p class="muted">
-        Deine Antworten sind gespeichert. Bitte versuche es noch einmal.
-      </p>
-    </div>`;
+      <div class="card">
+
+        <h2>Dein Profil konnte gerade nicht erstellt werden.</h2>
+
+        <p class="muted">
+          Deine Antworten sind gespeichert.
+          Bitte versuche es noch einmal.
+        </p>
+
+        <p>${esc(e.message)}</p>
+
+      </div>
+    `;
+
   }
+
 }
 function second(){if(!s.follow.length)return finalize();let q=s.follow[s.fi];app.innerHTML=`<div class="tiny">DEEP DIVE · ${s.fi+1} / ${s.follow.length}</div><div class="bar"><i style="width:${s.fi/s.follow.length*100}%"></i></div><div class="card"><h2 class="q">${esc(q.question)}</h2>${q.options.map((o,n)=>`<button class="opt" onclick="fpick(${n})">${esc(o)}</button>`).join('')}<button class="btn alt" onclick="fback()" style="margin-top:18px">← Zurück</button></div>`}
 function fpick(n){s.a['f'+s.follow[s.fi].id]=n;if(s.fi<s.follow.length-1){s.fi++;save();render()}else finalize()}
