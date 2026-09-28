@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 const system = `Du bist der Career Discovery Analyst.
 
@@ -87,31 +89,55 @@ Das JSON muss exakt diese Struktur haben:
 
 Die Antworten sollen auf den tatsächlichen Antworten der Person basieren. Nichts erfinden.`;
 
-export default async function handler(req,res){
-  if(req.method!=="POST")
-    return res.status(405).json({error:"Method not allowed"});
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
+  }
 
-  try{
-    const r=await client.responses.create({
-      model:process.env.OPENAI_MODEL||"gpt-5.6-sol",
-reasoning:{effort:"high"},
-      input:[
+  try {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    const heartbeat = setInterval(() => {
+      try {
+        // JSON erlaubt Whitespace vor dem eigentlichen JSON-Objekt.
+        // Dadurch bleibt die Verbindung während langer Analysen aktiv.
+        res.write(" ");
+      } catch {}
+    }, 8000);
+
+    const r = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+      reasoning: {
+        effort: "high"
+      },
+      input: [
         {
-          role:"system",
-          content:system
+          role: "system",
+          content: system
         },
         {
-          role:"user",
-          content:JSON.stringify({
-            questions:req.body.questions,
-            answers:req.body.answers
+          role: "user",
+          content: JSON.stringify({
+            questions: req.body.questions,
+            answers: req.body.answers
           })
         }
       ]
     });
 
-    return res.status(200).json(JSON.parse(r.output_text));
-  }catch(e){
-    return res.status(500).json({error:e.message});
+    clearInterval(heartbeat);
+
+    const result = JSON.parse(r.output_text);
+
+    return res.status(200).end(JSON.stringify(result));
+
+  } catch (e) {
+    return res.status(500).json({
+      error: e.message
+    });
   }
 }
