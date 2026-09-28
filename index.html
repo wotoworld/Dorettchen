@@ -103,6 +103,90 @@ button:focus-visible{
     flex:1;
   }
 }
+  .loadingHero{
+  text-align:center;
+}
+
+.loadingScene{
+  position:relative;
+  width:280px;
+  height:190px;
+  margin:35px auto 20px;
+  background:#f5f1ea;
+  border-radius:28px;
+  overflow:hidden;
+}
+
+.loadingDesk{
+  position:absolute;
+  left:35px;
+  right:35px;
+  bottom:35px;
+  height:10px;
+  background:#242424;
+  border-radius:10px;
+}
+
+.loadingCharacter{
+  position:absolute;
+  left:105px;
+  bottom:58px;
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:#ded7cc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  animation:reading 2.4s ease-in-out infinite;
+}
+
+.loadingPaper{
+  position:absolute;
+  left:155px;
+  bottom:48px;
+  width:55px;
+  height:42px;
+  background:#fff;
+  border-radius:5px;
+  transform:rotate(-8deg);
+  box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+.loadingPen{
+  position:absolute;
+  left:193px;
+  bottom:65px;
+  width:38px;
+  height:5px;
+  background:#242424;
+  border-radius:5px;
+  transform:rotate(-25deg);
+  transform-origin:left center;
+  animation:writing 1.2s ease-in-out infinite;
+}
+
+@keyframes reading{
+  0%,100%{transform:translateY(0) rotate(-2deg)}
+  50%{transform:translateY(-5px) rotate(2deg)}
+}
+
+@keyframes writing{
+  0%,100%{transform:rotate(-25deg) translateX(0)}
+  50%{transform:rotate(-18deg) translateX(5px)}
+}
+
+.loadingTimer{
+  font-size:34px;
+  font-weight:700;
+  letter-spacing:-1px;
+  margin:8px 0 18px;
+}
+
+.loadingHero h3{
+  margin-bottom:8px;
+}
 </style></head><body><main class="wrap"><div id="app"></div></main>
 <script>
 const Q=[{"id": 1, "type": "single", "question": "Was reizt dich spontan am meisten?", "options": ["Etwas Neues konzipieren", "Menschen begleiten", "Ein Projekt organisieren", "Ein komplexes Problem lösen"], "dimension": "creative"}, {"id": 2, "type": "rank", "question": "Ordne nach Interesse: Was würdest du am liebsten in einem Praktikum ausprobieren?", "options": ["Kreative Konzepte", "Menschen & Beziehungen", "Business & Strategie", "Events & Erlebnisse"], "dimension": "mixed"}, {"id": 3, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit sichtbar etwas gestaltet oder verändert?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 4, "type": "single", "question": "Du bekommst eine völlig offene Aufgabe. Was machst du zuerst?", "options": ["Ich entwickle spontan eine Idee", "Ich spreche mit anderen", "Ich recherchiere Beispiele", "Ich definiere erst Struktur und Ziel"], "dimension": "autonomy"}, {"id": 5, "type": "single", "question": "Was klingt attraktiver?", "options": ["Eine Idee entwickeln", "Eine bestehende Idee perfektionieren", "Ein Team koordinieren", "Ein Problem analytisch lösen"], "dimension": "creative"}, {"id": 6, "type": "scale", "question": "Wie viel Kontakt mit Menschen möchtest du an einem normalen Arbeitstag?", "options": ["1 – möglichst wenig", "2 – etwas", "3 – viel", "4 – sehr viel"], "dimension": "people"}, {"id": 7, "type": "rank", "question": "Rangiere diese Arbeitsumgebungen nach Attraktivität.", "options": ["Kreativstudio", "Start-up", "Internationaler Konzern", "Kleine Spezialfirma"], "dimension": "environment"}, {"id": 8, "type": "single", "question": "Was wäre dir bei einem Praktikum wichtiger?", "options": ["Viel ausprobieren", "Ein starkes Netzwerk", "Ein bekannter Name", "Eine klare Übernahmeperspektive"], "dimension": "career"}, {"id": 9, "type": "single", "question": "Wie reagierst du auf unklare Aufgaben?", "options": ["Das finde ich spannend", "Ich brauche einen groben Rahmen", "Ich bevorzuge klare Vorgaben", "Das stresst mich"], "dimension": "autonomy"}, {"id": 10, "type": "rank", "question": "Was motiviert dich am stärksten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 11, "type": "scale", "question": "Wie wichtig ist dir Ästhetik in deiner Arbeitsumgebung?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "aesthetic"}, {"id": 12, "type": "single", "question": "Was würdest du eher wählen?", "options": ["Ein kleines kreatives Team mit viel Freiheit", "Ein großes Unternehmen mit starkem Namen", "Ein Start-up mit hohem Risiko", "Eine etablierte Firma mit klarer Struktur"], "dimension": "environment"}, {"id": 13, "type": "scale", "question": "Wie sehr reizt dich die Eventwelt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 14, "type": "scale", "question": "Wie sehr reizt dich Design?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 15, "type": "scale", "question": "Wie sehr reizt dich Kunst und Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 16, "type": "scale", "question": "Wie sehr reizt dich Reisen als Bestandteil eines Jobs?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 17, "type": "scale", "question": "Wie wichtig ist dir Internationalität?", "options": ["1 – unwichtig", "2 – eher unwichtig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 18, "type": "scale", "question": "Wie wichtig ist dir langfristig ein hohes Einkommen?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 19, "type": "scale", "question": "Wie wichtig ist dir Sicherheit und Planbarkeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 20, "type": "scale", "question": "Wie attraktiv findest du Unternehmertum?", "options": ["1 – gar nicht", "2 – etwas", "3 – interessant", "4 – sehr attraktiv"], "dimension": "entrepreneur"}, {"id": 21, "type": "rank", "question": "Wenn du ein eigenes Projekt starten würdest, was reizt dich am meisten?", "options": ["Die Vision", "Die Menschen", "Das Produkt", "Das Wachstum"], "dimension": "entrepreneur"}, {"id": 22, "type": "scale", "question": "Wie viel Risiko würdest du für eine spannende Chance akzeptieren?", "options": ["1 – fast keines", "2 – wenig", "3 – einiges", "4 – viel"], "dimension": "risk"}, {"id": 23, "type": "scale", "question": "Wie schnell langweilen dich Routinen?", "options": ["1 – fast nie", "2 – selten", "3 – relativ schnell", "4 – sehr schnell"], "dimension": "variety"}, {"id": 24, "type": "scale", "question": "Wie wichtig ist dir Abwechslung?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "variety"}, {"id": 25, "type": "single", "question": "Was klingt besser?", "options": ["Viele kleine Projekte", "Ein großes Projekt über Monate", "Eine Mischung", "Klare wiederkehrende Aufgaben"], "dimension": "variety"}, {"id": 26, "type": "scale", "question": "Wie gerne präsentierst du vor anderen?", "options": ["1 – sehr ungern", "2 – eher ungern", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 27, "type": "scale", "question": "Wie wichtig ist Teamarbeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 28, "type": "scale", "question": "Wie gerne übernimmst du Verantwortung?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 29, "type": "rank", "question": "Was ist dir bei Kolleg:innen am wichtigsten?", "options": ["Kreativität", "Verlässlichkeit", "Ambition", "Empathie"], "dimension": "people"}, {"id": 30, "type": "scale", "question": "Wie wichtig ist dir ein gutes Arbeitsklima?", "options": ["1 – etwas", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "people"}, {"id": 31, "type": "scale", "question": "Wie sehr interessiert dich Markenaufbau?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 32, "type": "scale", "question": "Wie sehr interessiert dich Marketing?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 33, "type": "scale", "question": "Wie sehr interessiert dich Mode?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 34, "type": "scale", "question": "Wie sehr interessiert dich Luxus?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 35, "type": "scale", "question": "Wie sehr interessiert dich Hospitality?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 36, "type": "scale", "question": "Wie sehr interessiert dich Entertainment?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 37, "type": "scale", "question": "Wie sehr interessiert dich Technologie?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 38, "type": "scale", "question": "Wie sehr interessiert dich Start-up-Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "entrepreneur"}, {"id": 39, "type": "scale", "question": "Wie wichtig ist dir gesellschaftlicher Impact?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 40, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit einen Sinn hat?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 41, "type": "scale", "question": "Wie wichtig ist dir Status?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 42, "type": "single", "question": "Welche Motivation ist dir am wichtigsten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 43, "type": "single", "question": "Wie gehst du mit Kritik um?", "options": ["Ich nutze sie direkt", "Ich denke darüber nach", "Ich brauche Abstand", "Ich nehme sie ungern an"], "dimension": "learning"}, {"id": 44, "type": "scale", "question": "Wie gerne lernst du neue Dinge?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "learning"}, {"id": 45, "type": "scale", "question": "Wie wichtig ist dir persönliche Entwicklung?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "learning"}, {"id": 46, "type": "single", "question": "Was beschreibt dich eher?", "options": ["Generalist:in", "Spezialist:in", "T-shaped: beides", "Noch unklar"], "dimension": "learning"}, {"id": 47, "type": "scale", "question": "Wie gerne arbeitest du mit Zahlen?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 48, "type": "scale", "question": "Wie gerne recherchierst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 49, "type": "scale", "question": "Wie gerne schreibst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 50, "type": "scale", "question": "Wie gerne verhandelst du?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 51, "type": "scale", "question": "Wie wichtig ist dir eine internationale Karriere?", "options": ["1 – unwichtig", "2 – vielleicht", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 52, "type": "single", "question": "Würdest du für ein gutes Praktikum mehrere Monate ins Ausland gehen?", "options": ["Sofort", "Wahrscheinlich", "Vielleicht", "Eher nicht"], "dimension": "international"}, {"id": 53, "type": "rank", "question": "Welche Stadtatmosphäre reizt dich am meisten?", "options": ["Kreativ & kulturell", "Business & international", "Ruhig & hochwertig", "Dynamisch & jung"], "dimension": "environment"}, {"id": 54, "type": "scale", "question": "Wie wichtig ist dir, dass dein Job Reisen ermöglicht?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 55, "type": "scale", "question": "Wie wichtig ist dir Flexibilität beim Arbeitsort?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "autonomy"}, {"id": 56, "type": "scale", "question": "Wie wichtig ist dir Work-Life-Balance?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "lifestyle"}, {"id": 57, "type": "single", "question": "Würdest du für einen Traumjob zeitweise sehr intensiv arbeiten?", "options": ["Ja, sofort", "Eher ja", "Eher nein", "Nein"], "dimension": "career"}, {"id": 58, "type": "scale", "question": "Wie wichtig ist dir Freizeit für deine Identität?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 59, "type": "scale", "question": "Wie wichtig ist dir ein soziales Umfeld außerhalb der Arbeit?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 60, "type": "scale", "question": "Wie wichtig ist dir kulturelles Leben in deiner Stadt?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 61, "type": "scale", "question": "Wie sehr reizt dich die Arbeit mit Künstler:innen oder Kreativen?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 62, "type": "scale", "question": "Wie sehr reizt dich die Organisation kreativer Projekte?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 63, "type": "scale", "question": "Wie sehr reizt dich das Entwickeln von Konzepten?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 64, "type": "scale", "question": "Wie sehr reizt dich Kundenkontakt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 65, "type": "scale", "question": "Wie sehr reizt dich B2B-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 66, "type": "scale", "question": "Wie sehr reizt dich B2C-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 67, "type": "scale", "question": "Wie wichtig ist dir ein sichtbares Endprodukt?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 68, "type": "scale", "question": "Wie gerne organisierst du Dinge?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 69, "type": "scale", "question": "Wie gut kannst du viele Dinge gleichzeitig verfolgen?", "options": ["1 – schwer", "2 – mittel", "3 – gut", "4 – sehr gut"], "dimension": "organization"}, {"id": 70, "type": "single", "question": "Wie reagierst du auf kurzfristige Änderungen?", "options": ["Ich mag die Dynamik", "Ich passe mich an", "Ich brauche etwas Zeit", "Das stresst mich"], "dimension": "variety"}, {"id": 71, "type": "scale", "question": "Wie wichtig ist dir Struktur?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "organization"}, {"id": 72, "type": "scale", "question": "Wie wichtig ist dir Spontaneität?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 73, "type": "scale", "question": "Wie gerne leitest du Meetings?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 74, "type": "scale", "question": "Wie gerne baust du Beziehungen auf?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 75, "type": "scale", "question": "Wie wichtig ist Networking für dich?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 76, "type": "scale", "question": "Wie leicht fällt es dir, auf fremde Menschen zuzugehen?", "options": ["1 – schwer", "2 – eher schwer", "3 – eher leicht", "4 – sehr leicht"], "dimension": "people"}, {"id": 77, "type": "scale", "question": "Wie gerne arbeitest du mit externen Partnern?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 78, "type": "scale", "question": "Wie gerne koordinierst du unterschiedliche Interessen?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 79, "type": "scale", "question": "Wie wichtig ist dir Kreativität im Alltag?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "creative"}, {"id": 80, "type": "scale", "question": "Wie wichtig ist dir persönlicher Ausdruck?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 81, "type": "scale", "question": "Wie sehr reizt dich Fotografie/Visual Content?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 82, "type": "scale", "question": "Wie sehr reizt dich Social Media als Berufsfeld?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 83, "type": "scale", "question": "Wie sehr reizt dich PR/Kommunikation?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "communication"}, {"id": 84, "type": "scale", "question": "Wie sehr reizt dich Consulting?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "analytical"}, {"id": 85, "type": "scale", "question": "Wie sehr reizt dich klassische Unternehmensberatung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 86, "type": "scale", "question": "Wie sehr reizt dich Recruiting/People?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 87, "type": "scale", "question": "Wie sehr reizt dich Business Development?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 88, "type": "scale", "question": "Wie sehr reizt dich Produktentwicklung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 89, "type": "scale", "question": "Wie sehr reizt dich Innovation/Trend Research?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 90, "type": "scale", "question": "Wie sehr reizt dich Cultural Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 91, "type": "scale", "question": "Wie sehr reizt dich Event Production?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 92, "type": "scale", "question": "Wie sehr reizt dich Travel Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 93, "type": "scale", "question": "Wie sehr reizt dich Luxury Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 94, "type": "scale", "question": "Wie sehr reizt dich Art/Design Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 95, "type": "scale", "question": "Wie wichtig ist dir, später viele Türen offen zu haben?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 96, "type": "scale", "question": "Wie wichtig ist dir ein klarer Karrierepfad?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 97, "type": "scale", "question": "Wie wichtig ist dir Prestige deines Arbeitgebers?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 98, "type": "rank", "question": "Was wäre für dich ein ideales Praktikum?", "options": ["Ich darf viel ausprobieren", "Ich bekomme Verantwortung", "Ich lerne von Top-Leuten", "Ich arbeite an etwas Sichtbarem"], "dimension": "learning"}, {"id": 99, "type": "single", "question": "Welche Aussage beschreibt dich am ehesten?", "options": ["Ich habe viele Interessen", "Ich habe eine klare Leidenschaft", "Ich möchte mich erst ausprobieren", "Ich suche vor allem Stabilität"], "dimension": "variety"}, {"id": 100, "type": "single", "question": "Was wäre schlimmer?", "options": ["Langeweile", "Überforderung", "Unsicherheit", "Zu wenig Anerkennung"], "dimension": "motivation"}],app=document.getElementById('app');
@@ -126,7 +210,97 @@ function setRank(opt,rank){let q=Q[s.i],v=Array.isArray(s.a[q.id])?[...s.a[q.id]
 function rankNext(){let v=s.a[Q[s.i].id]||[];if(v.length!==4||v.some(x=>!x)||new Set(v).size<4)return alert('Bitte 1–4 jeweils genau einmal vergeben.');next()}
 function next(){if(s.i<Q.length-1){s.i++;save();render()}else analyze()}
 function back(){if(s.i){s.i--;render()}}
-async function analyze(){s.phase='analysis';app.innerHTML='<div class="hero"><div class="tiny">ANALYSE</div><h1>Wir lesen zwischen den Antworten.</h1><p class="muted">Die KI sucht nach Mustern, Widersprüchen und interessanten Kombinationen und baut daraus deinen zweiten Fragebogen.</p></div>';try{let r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({questions:Q,answers:s.a})});if(!r.ok)throw Error(await r.text());let d=await r.json();s.profile=d;s.follow=d.followup_questions||[];s.fi=0;s.phase='second';save();render()}catch(e){app.innerHTML=`<div class="card"><h2>KI noch nicht verbunden</h2><p class="muted">Der Test ist vollständig. Setze auf dem Hosting OPENAI_API_KEY, damit die Analyse läuft.</p><p>${esc(e.message)}</p></div>`}}
+async function analyze(){
+  s.phase='analysis';
+
+  let startTime=Date.now();
+
+  app.innerHTML=`
+  <div class="hero loadingHero">
+    <div class="tiny">DEIN PROFIL ENTSTEHT</div>
+    <h1>Wir lesen zwischen den Antworten.</h1>
+
+    <div class="loadingScene">
+      <div class="loadingCharacter">◡̈</div>
+      <div class="loadingDesk"></div>
+      <div class="loadingPaper"></div>
+      <div class="loadingPen"></div>
+    </div>
+
+    <div class="loadingTimer" id="loadingTimer">00:00</div>
+
+    <h3 id="loadingTitle">Doro liest gerade zwischen den Zeilen.</h3>
+
+    <p class="muted" id="loadingText">
+      Muster werden verbunden und interessante Kombinationen herausgearbeitet.
+    </p>
+  </div>`;
+
+  const loadingMessages=[
+    ['Doro liest gerade zwischen den Zeilen.','Muster und Gemeinsamkeiten werden verbunden.'],
+    ['Doro entdeckt gerade Widersprüche.','Besonders spannende Antworten werden genauer betrachtet.'],
+    ['Doro sortiert gerade deine Interessen.','Was passt zusammen – und was überraschend nicht?'],
+    ['Doro baut gerade dein persönliches Profil.','Aus vielen einzelnen Antworten entsteht langsam ein Gesamtbild.'],
+    ['Doro schaut noch einmal genauer hin.','Die interessanten Kombinationen bekommen gerade ihren Platz.']
+  ];
+
+  let msgIndex=0;
+
+  const loadingInterval=setInterval(()=>{
+    const seconds=Math.floor((Date.now()-startTime)/1000);
+    const min=String(Math.floor(seconds/60)).padStart(2,'0');
+    const sec=String(seconds%60).padStart(2,'0');
+
+    const timer=document.getElementById('loadingTimer');
+    if(timer)timer.textContent=`${min}:${sec}`;
+
+    msgIndex=(msgIndex+1)%loadingMessages.length;
+
+    const title=document.getElementById('loadingTitle');
+    const text=document.getElementById('loadingText');
+
+    if(title)title.textContent=loadingMessages[msgIndex][0];
+    if(text)text.textContent=loadingMessages[msgIndex][1];
+
+  },4000);
+
+  try{
+    let r=await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        questions:Q,
+        answers:s.a
+      })
+    });
+
+    if(!r.ok)throw Error(await r.text());
+
+    clearInterval(loadingInterval);
+
+    let d=await r.json();
+
+    s.profile=d;
+    s.follow=d.followup_questions||[];
+    s.fi=0;
+    s.phase='second';
+
+    save();
+    render();
+
+  }catch(e){
+
+    clearInterval(loadingInterval);
+
+    app.innerHTML=`
+    <div class="card">
+      <h2>Dein Profil konnte gerade nicht erstellt werden.</h2>
+      <p class="muted">
+        Deine Antworten sind gespeichert. Bitte versuche es noch einmal.
+      </p>
+    </div>`;
+  }
+}
 function second(){if(!s.follow.length)return finalize();let q=s.follow[s.fi];app.innerHTML=`<div class="tiny">DEEP DIVE · ${s.fi+1} / ${s.follow.length}</div><div class="bar"><i style="width:${s.fi/s.follow.length*100}%"></i></div><div class="card"><h2 class="q">${esc(q.question)}</h2>${q.options.map((o,n)=>`<button class="opt" onclick="fpick(${n})">${esc(o)}</button>`).join('')}<button class="btn alt" onclick="fback()" style="margin-top:18px">← Zurück</button></div>`}
 function fpick(n){s.a['f'+s.follow[s.fi].id]=n;if(s.fi<s.follow.length-1){s.fi++;save();render()}else finalize()}
 function fback(){if(s.fi){s.fi--;render()}else{s.phase='quiz';s.i=Q.length-1;render()}}
