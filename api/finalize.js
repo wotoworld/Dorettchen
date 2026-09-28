@@ -4,7 +4,7 @@ const system="Du bist die finale Career-Discovery-Analystin. Nutze Erstfrageboge
 export default async function handler(req,res){
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
  try{
-  const r=await client.responses.create({model:model:process.env.OPENAI_MODEL||"gpt-5.6-sol",
+  const r=await client.responses.create({model:process.env.OPENAI_MODEL||"gpt-5.6-sol",
 reasoning:{effort:"high"},input:[{role:"system",content:system},{role:"user",content:JSON.stringify(req.body)}],text:{format:{type:"json_object"}}});
   return res.status(200).json(JSON.parse(r.output_text));
  }catch(e){return res.status(500).json({error:e.message})}
