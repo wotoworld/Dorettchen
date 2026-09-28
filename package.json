@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vercel dev"
   },
-  "dependencies": {
-    "openai": "latest"
-  }
+"dependencies": {
+  "@vercel/functions": "^3.0.0",
+  "openai": "^..."
 }
