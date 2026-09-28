@@ -1,8 +1,13 @@
 import OpenAI from "openai";
+import { waitUntil } from "@vercel/functions";
+import crypto from "crypto";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+const REDIS_URL = process.env.STORAGE_KV_REST_API_URL;
+const REDIS_TOKEN = process.env.STORAGE_KV_REST_API_TOKEN;
 
 const system = `Du bist der Career Discovery Analyst.
 
@@ -45,11 +50,6 @@ Erstelle außerdem:
 
 Diese Momente sollen echte Spannungen oder überraschende Kombinationen aus den Antworten aufgreifen. Sie sollen spielerisch, charmant und leicht frech formuliert sein, aber niemals beleidigend.
 
-Beispiel:
-"👀 Du hast dich gerade selbst verraten.
-Du sagst, dass Sicherheit wichtig ist – gleichzeitig würdest du für eine richtig spannende Chance ziemlich viel Risiko akzeptieren.
-Vielleicht brauchst du gar nicht maximale Sicherheit. Vielleicht brauchst du Sicherheit MIT Aufregung."
-
 Erstelle außerdem einige konkrete Themen, die im zweiten Fragebogen weiter untersucht werden sollten.
 
 Die Follow-up-Fragen sollen nicht allgemein sein. Sie sollen gezielt dort nachhaken, wo die Antworten besonders interessant, widersprüchlich oder unklar sind.
@@ -89,31 +89,24 @@ Das JSON muss exakt diese Struktur haben:
 
 Die Antworten sollen auf den tatsächlichen Antworten der Person basieren. Nichts erfinden.`;
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+async function redisSet(key, value) {
+  const response = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(JSON.stringify(value))}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${REDIS_TOKEN}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Redis SET failed: ${response.status}`);
   }
+}
 
+async function runAnalysis(jobId, body) {
   try {
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("X-Accel-Buffering", "no");
-
-    const heartbeat = setInterval(() => {
-      try {
-        // JSON erlaubt Whitespace vor dem eigentlichen JSON-Objekt.
-        // Dadurch bleibt die Verbindung während langer Analysen aktiv.
-        res.write(" ");
-      } catch {}
-    }, 8000);
-
     const r = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-      reasoning: {
-        effort: "high"
-      },
+      reasoning: { effort: "high" },
       input: [
         {
           role: "system",
@@ -122,22 +115,50 @@ export default async function handler(req, res) {
         {
           role: "user",
           content: JSON.stringify({
-            questions: req.body.questions,
-            answers: req.body.answers
+            questions: body.questions,
+            answers: body.answers
           })
         }
       ]
     });
 
-    clearInterval(heartbeat);
-
     const result = JSON.parse(r.output_text);
 
-    return res.status(200).end(JSON.stringify(result));
+    await redisSet(`career-job:${jobId}`, {
+      status: "complete",
+      result
+    });
+  } catch (error) {
+    await redisSet(`career-job:${jobId}`, {
+      status: "error",
+      error: error.message
+    });
+  }
+}
 
-  } catch (e) {
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
+  }
+
+  try {
+    const jobId = crypto.randomUUID();
+
+    await redisSet(`career-job:${jobId}`, {
+      status: "running"
+    });
+
+    waitUntil(runAnalysis(jobId, req.body));
+
+    return res.status(202).json({
+      jobId
+    });
+
+  } catch (error) {
     return res.status(500).json({
-      error: e.message
+      error: error.message
     });
   }
 }
