@@ -650,7 +650,689 @@ function second(){if(!s.follow.length)return finalize();let q=s.follow[s.fi];app
 function fpick(n){s.a['f'+s.follow[s.fi].id]=n;if(s.fi<s.follow.length-1){s.fi++;save();render()}else finalize()}
 function fback(){if(s.fi){s.fi--;render()}else{s.phase='quiz';s.i=Q.length-1;render()}}
 async function finalize(){s.phase='analysis';app.innerHTML='<div class="hero"><div class="tiny">CAREER MAP</div><h1>Jetzt wird das Gesamtbild erstellt.</h1><p class="muted">Erst- und Zweitfragebogen werden gemeinsam interpretiert.</p></div>';try{let r=await fetch('/api/finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({questions:Q,answers:s.a,profile:s.profile,followup:s.follow})});if(!r.ok)throw Error(await r.text());s.profile=await r.json();s.phase='final';save();render()}catch(e){app.innerHTML=`<div class="card"><h2>Analysefehler</h2><p>${esc(e.message)}</p></div>`}}
-function final(){let p=s.profile||{};app.innerHTML=`<div class="tiny">YOUR CAREER MAP</div><h1>${esc(p.headline||'Dein Profil')}</h1><p class="muted">${esc(p.summary||'')}</p><div class="grid section">${(p.themes||[]).map(x=>`<div class="card"><h3>${esc(x.name)}</h3><p class="muted">${esc(x.description)}</p></div>`).join('')}</div><div class="card section"><h2>Richtungen zum Erkunden</h2>${(p.directions||[]).map(x=>`<div style="padding:13px 0;border-bottom:1px solid #eee"><b>${esc(x.title)}</b><p class="muted">${esc(x.why)}</p><small>${esc(x.test)}</small></div>`).join('')}</div><div class="card section"><h2>Spannungen & offene Fragen</h2>${(p.tensions||[]).map(x=>`<p><b>${esc(x.title)}</b><br><span class="muted">${esc(x.detail)}</span></p>`).join('')}</div><div class="card section"><h2>Nächste Schritte</h2><ol>${(p.next_steps||[]).map(x=>`<li style="margin:9px 0">${esc(x)}</li>`).join('')}</ol><button class="btn" onclick="s.phase='chat';render()">Mit dem Career Advisor sprechen →</button></div>`}
+function final(){
+
+  const p = s.profile || {};
+  const dna = p.career_dna || {};
+  const dimensions = Array.isArray(dna.dimensions) ? dna.dimensions : [];
+  const profile = p.profile || {};
+  const strengths = Array.isArray(p.strengths) ? p.strengths : [];
+  const reveals = Array.isArray(p.self_reveals) ? p.self_reveals : [];
+  const directions = Array.isArray(p.directions) ? p.directions : [];
+  const environment = p.environment || {};
+  const nextSteps = Array.isArray(p.next_steps) ? p.next_steps : [];
+
+  function clamp(value){
+    return Math.max(0, Math.min(100, Number(value) || 0));
+  }
+
+  function radarPoint(index, score, radius = 190){
+
+    const count = Math.max(dimensions.length, 1);
+    const angle = -Math.PI / 2 + (index / count) * Math.PI * 2;
+    const r = radius * clamp(score) / 100;
+
+    return {
+      x: 400 + Math.cos(angle) * r,
+      y: 270 + Math.sin(angle) * r
+    };
+  }
+
+  function outerPoint(index, radius = 190){
+
+    const count = Math.max(dimensions.length, 1);
+    const angle = -Math.PI / 2 + (index / count) * Math.PI * 2;
+
+    return {
+      x: 400 + Math.cos(angle) * radius,
+      y: 270 + Math.sin(angle) * radius
+    };
+  }
+
+  function polygonPoints(radius){
+
+    return dimensions.map((d, i) => {
+
+      const point = outerPoint(i, radius);
+
+      return `${point.x},${point.y}`;
+
+    }).join(' ');
+  }
+
+  function profilePoints(){
+
+    return dimensions.map((d, i) => {
+
+      const point = radarPoint(i, d.score);
+
+      return `${point.x},${point.y}`;
+
+    }).join(' ');
+  }
+
+  function labelMarkup(){
+
+    return dimensions.map((d, i) => {
+
+      const point = outerPoint(i, 225);
+
+      let anchor = 'middle';
+
+      if(point.x < 335) anchor = 'end';
+      if(point.x > 465) anchor = 'start';
+
+      return `
+        <text
+          x="${point.x}"
+          y="${point.y}"
+          text-anchor="${anchor}"
+          dominant-baseline="middle"
+          font-size="14"
+          font-weight="600"
+          fill="#555"
+        >
+          ${esc(d.name || '')}
+        </text>
+      `;
+
+    }).join('');
+  }
+
+  function axisMarkup(){
+
+    return dimensions.map((d, i) => {
+
+      const point = outerPoint(i, 190);
+
+      return `
+        <line
+          x1="400"
+          y1="270"
+          x2="${point.x}"
+          y2="${point.y}"
+          stroke="#e4e1db"
+          stroke-width="1"
+        />
+      `;
+
+    }).join('');
+  }
+
+  function dotsMarkup(){
+
+    return dimensions.map((d, i) => {
+
+      const point = radarPoint(i, d.score);
+
+      return `
+        <circle
+          cx="${point.x}"
+          cy="${point.y}"
+          r="6"
+          fill="#171717"
+        />
+      `;
+
+    }).join('');
+  }
+
+  app.innerHTML = `
+
+    <div class="careerMap">
+
+      <!-- HERO -->
+
+      <section class="careerHero">
+
+        <div class="tiny">
+          CAREER MAP
+        </div>
+
+        <h1>
+          ${esc(profile.title || dna.title || 'Dein Profil')}
+        </h1>
+
+        <p class="careerSummary">
+          ${esc(profile.summary || dna.description || '')}
+        </p>
+
+      </section>
+
+
+      <!-- CAREER DNA -->
+
+      <section class="careerSection">
+
+        <div class="careerSectionHeader">
+
+          <div class="tiny">
+            DEIN PROFIL AUF EINEN BLICK
+          </div>
+
+          <h2>
+            Career DNA
+          </h2>
+
+        </div>
+
+
+        <div class="dnaLayout">
+
+
+          <!-- RADAR -->
+
+          <div class="card dnaVisual">
+
+            ${
+              dimensions.length
+              ? `
+
+                <svg
+                  viewBox="0 0 800 540"
+                  role="img"
+                  aria-label="Visuelle Darstellung deiner Career DNA"
+                >
+
+                  <polygon
+                    points="${polygonPoints(190)}"
+                    fill="none"
+                    stroke="#ddd9d2"
+                    stroke-width="1"
+                  />
+
+                  <polygon
+                    points="${polygonPoints(142.5)}"
+                    fill="none"
+                    stroke="#e5e2dc"
+                    stroke-width="1"
+                  />
+
+                  <polygon
+                    points="${polygonPoints(95)}"
+                    fill="none"
+                    stroke="#ebe8e2"
+                    stroke-width="1"
+                  />
+
+                  <polygon
+                    points="${polygonPoints(47.5)}"
+                    fill="none"
+                    stroke="#f0ede8"
+                    stroke-width="1"
+                  />
+
+                  ${axisMarkup()}
+
+                  <polygon
+                    points="${profilePoints()}"
+                    fill="#171717"
+                    fill-opacity=".10"
+                    stroke="#171717"
+                    stroke-width="3"
+                  />
+
+                  ${dotsMarkup()}
+
+                  ${labelMarkup()}
+
+                </svg>
+
+              `
+              : `
+
+                <div class="muted">
+                  Deine Career DNA konnte noch nicht dargestellt werden.
+                </div>
+
+              `
+            }
+
+          </div>
+
+
+          <!-- DIMENSIONS -->
+
+          <div class="card dnaLegend">
+
+            ${
+              dimensions.map(d => {
+
+                const score = clamp(d.score);
+
+                return `
+
+                  <div class="dnaItem">
+
+                    <div class="dnaItemTop">
+
+                      <span class="dnaItemName">
+                        ${esc(d.name || '')}
+                      </span>
+
+                      <span class="dnaScore">
+                        ${Math.round(score)}
+                      </span>
+
+                    </div>
+
+                    <div class="dnaTrack">
+
+                      <i
+                        style="width:${score}%"
+                      ></i>
+
+                    </div>
+
+                    <p>
+                      ${esc(
+                        d.summary ||
+                        d.short_description ||
+                        ''
+                      )}
+                    </p>
+
+                  </div>
+
+                `;
+
+              }).join('')
+            }
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- PROFILE -->
+
+      <section class="careerSection">
+
+        <div class="careerSectionHeader">
+
+          <div class="tiny">
+            DAS GESAMTBILD
+          </div>
+
+          <h2>
+            Was hinter dem Profil steckt
+          </h2>
+
+        </div>
+
+
+        <div class="card careerIntroCard">
+
+          <h3>
+            ${esc(profile.title || dna.title || 'Dein Profil')}
+          </h3>
+
+          <p>
+            ${esc(
+              profile.description ||
+              dna.description ||
+              ''
+            )}
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- STRENGTHS -->
+
+      ${
+        strengths.length
+        ? `
+
+          <section class="careerSection">
+
+            <div class="careerSectionHeader">
+
+              <div class="tiny">
+                PERSÖNLICHE MUSTER
+              </div>
+
+              <h2>
+                Was dich ausmacht
+              </h2>
+
+            </div>
+
+
+            <div class="profileGrid">
+
+              ${
+                strengths.map(x => `
+
+                  <article class="card profileCard">
+
+                    <h3>
+                      ${esc(x.title || '')}
+                    </h3>
+
+                    <div class="summary">
+                      ${esc(x.summary || '')}
+                    </div>
+
+                    <div class="detail">
+                      ${esc(x.description || '')}
+                    </div>
+
+                  </article>
+
+                `).join('')
+              }
+
+            </div>
+
+          </section>
+
+        `
+        : ''
+      }
+
+
+      <!-- SELF REVEALS -->
+
+      ${
+        reveals.length
+        ? `
+
+          <section class="careerSection">
+
+            <div class="careerSectionHeader">
+
+              <div class="tiny">
+                INTERESSANTE SPANNUNGEN
+              </div>
+
+              <h2>
+                Du hast dich gerade selbst verraten.
+              </h2>
+
+            </div>
+
+
+            <div class="revealList">
+
+              ${
+                reveals.map((x, i) => `
+
+                  <article class="card revealCard">
+
+                    <div class="revealNumber">
+                      ${String(i + 1).padStart(2, '0')}
+                    </div>
+
+                    <h3>
+                      ${esc(x.title || '')}
+                    </h3>
+
+                    <div class="revealObservation">
+                      ${esc(x.observation || '')}
+                    </div>
+
+                    <div class="detail">
+                      ${esc(x.interpretation || '')}
+                    </div>
+
+                  </article>
+
+                `).join('')
+              }
+
+            </div>
+
+          </section>
+
+        `
+        : ''
+      }
+
+
+      <!-- DIRECTIONS -->
+
+      ${
+        directions.length
+        ? `
+
+          <section class="careerSection">
+
+            <div class="careerSectionHeader">
+
+              <div class="tiny">
+                MÖGLICHE FELDER
+              </div>
+
+              <h2>
+                Richtungen zum Erkunden
+              </h2>
+
+            </div>
+
+
+            <div class="directionGrid">
+
+              ${
+                directions.map(x => `
+
+                  <article class="card directionCard">
+
+                    <h3>
+                      ${esc(x.title || '')}
+                    </h3>
+
+                    <div class="directionSummary">
+                      ${esc(x.summary || '')}
+                    </div>
+
+                    <div class="detail">
+                      ${esc(x.description || '')}
+                    </div>
+
+
+                    ${
+                      x.why_it_fits
+                      ? `
+
+                        <div class="directionBlock">
+
+                          <strong>
+                            Warum diese Richtung interessant sein könnte
+                          </strong>
+
+                          <div class="detail">
+                            ${esc(x.why_it_fits)}
+                          </div>
+
+                        </div>
+
+                      `
+                      : ''
+                    }
+
+
+                    ${
+                      x.watch_out
+                      ? `
+
+                        <div class="directionBlock">
+
+                          <strong>
+                            Was du genauer prüfen solltest
+                          </strong>
+
+                          <div class="detail">
+                            ${esc(x.watch_out)}
+                          </div>
+
+                        </div>
+
+                      `
+                      : ''
+                    }
+
+                  </article>
+
+                `).join('')
+              }
+
+            </div>
+
+          </section>
+
+        `
+        : ''
+      }
+
+
+      <!-- ENVIRONMENT -->
+
+      ${
+        environment.environment_title
+        ? `
+
+          <section class="careerSection">
+
+            <div class="careerSectionHeader">
+
+              <div class="tiny">
+                ARBEITSUMFELD
+              </div>
+
+              <h2>
+                Wo dein Profil Raum bekommen könnte
+              </h2>
+
+            </div>
+
+
+            <div class="card environmentCard">
+
+              <h3>
+                ${esc(environment.environment_title)}
+              </h3>
+
+              ${
+                environment.environment_summary
+                ? `
+                  <p>
+                    ${esc(environment.environment_summary)}
+                  </p>
+                `
+                : ''
+              }
+
+              ${
+                environment.environment_description
+                ? `
+                  <p>
+                    ${esc(environment.environment_description)}
+                  </p>
+                `
+                : ''
+              }
+
+            </div>
+
+          </section>
+
+        `
+        : ''
+      }
+
+
+      <!-- NEXT STEPS -->
+
+      ${
+        nextSteps.length
+        ? `
+
+          <section class="careerSection">
+
+            <div class="careerSectionHeader">
+
+              <div class="tiny">
+                ORIENTIERUNG
+              </div>
+
+              <h2>
+                Wie du jetzt weitersuchen kannst
+              </h2>
+
+            </div>
+
+
+            <div class="nextGrid">
+
+              ${
+                nextSteps.map(x => `
+
+                  <article class="card nextCard">
+
+                    <h3>
+                      ${esc(
+                        typeof x === 'string'
+                        ? x
+                        : (x.title || '')
+                      )}
+                    </h3>
+
+                    ${
+                      typeof x === 'object' && x.description
+                      ? `
+                        <p>
+                          ${esc(x.description)}
+                        </p>
+                      `
+                      : ''
+                    }
+
+                  </article>
+
+                `).join('')
+              }
+
+            </div>
+
+          </section>
+
+        `
+        : ''
+      }
+
+
+      <!-- CTA -->
+
+      <div class="card careerCTA">
+
+        <h2>
+          Und jetzt wird es konkret.
+        </h2>
+
+        <p class="muted">
+          Dein Profil ist kein endgültiges Ergebnis.
+          Es ist ein Ausgangspunkt, um die Richtungen zu erkunden,
+          die dich tatsächlich neugierig machen.
+        </p>
+
+        <button
+          class="btn"
+          onclick="s.phase='chat';render()"
+        >
+          Mit dem Career Advisor sprechen →
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+}
 async function chat(){app.innerHTML=`<div class="row"><div><div class="tiny">AI CAREER ADVISOR</div><h1 style="font-size:38px">Lass uns tiefer gehen.</h1></div><button class="btn alt" onclick="s.phase='final';render()">Career Map</button></div><div class="card chat">${s.chat.map(m=>`<div class="bubble ${m.role==='user'?'me':'ai'}">${esc(m.text)}</div>`).join('')||'<div class="muted">Frag mich zu deinem Profil, möglichen Richtungen oder nächsten Experimenten.</div>'}</div><div class="chatbox"><input id="msg" placeholder="z. B. Welche Richtung sollte ich als Erstes testen?"><button class="btn" onclick="send()">Senden</button></div>`}
 async function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;s.chat.push({role:'user',text:t});render();try{let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t,profile:s.profile,answers:s.a,history:s.chat})});let d=await r.json();s.chat.push({role:'assistant',text:d.text||d.error});save();render()}catch(e){s.chat.push({role:'assistant',text:'Die KI ist momentan nicht erreichbar.'});render()}}
 render();
