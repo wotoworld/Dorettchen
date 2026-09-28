@@ -247,10 +247,30 @@ button:focus-visible{
 }
 
 .dnaLayout{
-  display:grid;
-  grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
-  gap:20px;
-  align-items:stretch;
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+  align-items:center;
+}
+
+.dnaVisual{
+  width:100%;
+  max-width:720px;
+  min-height:auto;
+  padding:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+}
+
+.radarSvg{
+  width:100%;
+  max-width:560px;
+  height:auto;
+  display:block;
+  overflow:visible;
+  margin:0 auto;
 }
 
 .dnaVisual{
@@ -716,7 +736,11 @@ async function loadJobs(){
     const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:s.profile})});
     if(!r.ok)throw Error(await r.text());
     const d=await r.json();s.jobs=Array.isArray(d.jobs)?d.jobs:[];s.jobsLoaded=true;
-  }catch(e){s.jobs=[];s.jobsLoaded=true;}
+}catch(e){
+  s.jobs=[];
+  s.jobsError=e.message||'Die Stellensuche konnte gerade nicht geladen werden.';
+  s.jobsLoaded=true;
+}
   s.jobsLoading=false;save();render();
 }
 function chat(){
