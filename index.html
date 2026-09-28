@@ -187,6 +187,325 @@ button:focus-visible{
 .loadingHero h3{
   margin-bottom:8px;
 }
+  /* ===== CAREER MAP ===== */
+
+.careerMap{
+  padding-bottom:80px;
+}
+
+.careerHero{
+  padding:35px 0 50px;
+  max-width:900px;
+}
+
+.careerHero h1{
+  font-size:clamp(42px,7vw,76px);
+  line-height:.98;
+  letter-spacing:-3px;
+  margin:12px 0 22px;
+}
+
+.careerSummary{
+  font-size:22px;
+  line-height:1.45;
+  max-width:820px;
+  color:#555;
+}
+
+.careerSection{
+  margin-top:34px;
+}
+
+.careerSectionHeader{
+  margin-bottom:20px;
+}
+
+.careerSectionHeader .tiny{
+  margin-bottom:8px;
+}
+
+.careerSectionHeader h2{
+  font-size:clamp(30px,4vw,46px);
+  line-height:1.05;
+  letter-spacing:-1.5px;
+  margin:0;
+}
+
+.careerIntroCard{
+  padding:34px;
+  margin-bottom:20px;
+}
+
+.careerIntroCard h3{
+  margin-top:0;
+  font-size:24px;
+}
+
+.careerIntroCard p{
+  font-size:18px;
+  line-height:1.65;
+}
+
+.dnaLayout{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+  gap:20px;
+  align-items:stretch;
+}
+
+.dnaVisual{
+  min-height:560px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:25px;
+}
+
+.dnaVisual svg{
+  width:100%;
+  height:auto;
+  max-width:760px;
+}
+
+.dnaLegend{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding:28px;
+}
+
+.dnaItem{
+  padding-bottom:13px;
+  border-bottom:1px solid #ebe8e2;
+}
+
+.dnaItem:last-child{
+  border-bottom:0;
+}
+
+.dnaItemTop{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:7px;
+}
+
+.dnaItemName{
+  font-weight:700;
+  overflow-wrap:anywhere;
+}
+
+.dnaScore{
+  font-weight:700;
+  color:#777;
+  flex-shrink:0;
+}
+
+.dnaTrack{
+  height:7px;
+  background:#e7e3dc;
+  border-radius:99px;
+  overflow:hidden;
+}
+
+.dnaTrack i{
+  display:block;
+  height:100%;
+  background:#171717;
+  border-radius:99px;
+}
+
+.dnaItem p{
+  margin:7px 0 0;
+  color:#666;
+  font-size:14px;
+  line-height:1.45;
+}
+
+.profileGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:20px;
+}
+
+.profileCard{
+  padding:30px;
+  min-width:0;
+}
+
+.profileCard h3,
+.directionCard h3,
+.revealCard h3{
+  overflow-wrap:anywhere;
+  word-break:normal;
+  line-height:1.08;
+  margin-top:0;
+}
+
+.profileCard h3{
+  font-size:25px;
+  margin-bottom:14px;
+}
+
+.profileCard .summary{
+  font-size:18px;
+  line-height:1.5;
+  margin-bottom:18px;
+}
+
+.profileCard .detail,
+.directionCard .detail,
+.revealCard .detail{
+  color:#666;
+  line-height:1.7;
+  font-size:16px;
+}
+
+.revealList{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.revealCard{
+  padding:34px;
+  border-radius:22px;
+}
+
+.revealNumber{
+  font-size:13px;
+  letter-spacing:2px;
+  color:#888;
+  margin-bottom:12px;
+}
+
+.revealCard h3{
+  font-size:30px;
+  margin-bottom:16px;
+}
+
+.revealObservation{
+  font-size:19px;
+  line-height:1.5;
+  margin-bottom:18px;
+}
+
+.directionGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:20px;
+}
+
+.directionCard{
+  padding:30px;
+  min-width:0;
+}
+
+.directionCard h3{
+  font-size:26px;
+  margin-bottom:12px;
+}
+
+.directionSummary{
+  font-size:18px;
+  line-height:1.5;
+  margin-bottom:20px;
+}
+
+.directionBlock{
+  margin-top:20px;
+  padding-top:18px;
+  border-top:1px solid #ebe8e2;
+}
+
+.directionBlock strong{
+  display:block;
+  margin-bottom:7px;
+}
+
+.nextGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:20px;
+}
+
+.nextCard{
+  padding:28px;
+}
+
+.nextCard h3{
+  margin-top:0;
+  font-size:22px;
+  overflow-wrap:anywhere;
+}
+
+.nextCard p{
+  color:#666;
+  line-height:1.65;
+}
+
+.environmentCard{
+  padding:34px;
+}
+
+.environmentCard h3{
+  margin-top:0;
+  font-size:30px;
+}
+
+.environmentCard p{
+  font-size:18px;
+  line-height:1.7;
+  color:#5f5f5f;
+}
+
+.careerCTA{
+  margin-top:34px;
+  padding:36px;
+  text-align:center;
+}
+
+.careerCTA h2{
+  margin-top:0;
+}
+
+/* responsive */
+
+@media(max-width:800px){
+  .dnaLayout,
+  .profileGrid,
+  .directionGrid,
+  .nextGrid{
+    grid-template-columns:1fr;
+  }
+
+  .dnaVisual{
+    min-height:430px;
+    padding:12px;
+  }
+
+  .careerHero{
+    padding-top:20px;
+  }
+
+  .careerHero h1{
+    letter-spacing:-2px;
+  }
+
+  .careerSummary{
+    font-size:19px;
+  }
+
+  .careerIntroCard,
+  .profileCard,
+  .directionCard,
+  .revealCard,
+  .nextCard,
+  .environmentCard{
+    padding:24px;
+  }
+}
 </style></head><body><main class="wrap"><div id="app"></div></main>
 <script>
 const Q=[{"id": 1, "type": "single", "question": "Was reizt dich spontan am meisten?", "options": ["Etwas Neues konzipieren", "Menschen begleiten", "Ein Projekt organisieren", "Ein komplexes Problem lösen"], "dimension": "creative"}, {"id": 2, "type": "rank", "question": "Ordne nach Interesse: Was würdest du am liebsten in einem Praktikum ausprobieren?", "options": ["Kreative Konzepte", "Menschen & Beziehungen", "Business & Strategie", "Events & Erlebnisse"], "dimension": "mixed"}, {"id": 3, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit sichtbar etwas gestaltet oder verändert?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 4, "type": "single", "question": "Du bekommst eine völlig offene Aufgabe. Was machst du zuerst?", "options": ["Ich entwickle spontan eine Idee", "Ich spreche mit anderen", "Ich recherchiere Beispiele", "Ich definiere erst Struktur und Ziel"], "dimension": "autonomy"}, {"id": 5, "type": "single", "question": "Was klingt attraktiver?", "options": ["Eine Idee entwickeln", "Eine bestehende Idee perfektionieren", "Ein Team koordinieren", "Ein Problem analytisch lösen"], "dimension": "creative"}, {"id": 6, "type": "scale", "question": "Wie viel Kontakt mit Menschen möchtest du an einem normalen Arbeitstag?", "options": ["1 – möglichst wenig", "2 – etwas", "3 – viel", "4 – sehr viel"], "dimension": "people"}, {"id": 7, "type": "rank", "question": "Rangiere diese Arbeitsumgebungen nach Attraktivität.", "options": ["Kreativstudio", "Start-up", "Internationaler Konzern", "Kleine Spezialfirma"], "dimension": "environment"}, {"id": 8, "type": "single", "question": "Was wäre dir bei einem Praktikum wichtiger?", "options": ["Viel ausprobieren", "Ein starkes Netzwerk", "Ein bekannter Name", "Eine klare Übernahmeperspektive"], "dimension": "career"}, {"id": 9, "type": "single", "question": "Wie reagierst du auf unklare Aufgaben?", "options": ["Das finde ich spannend", "Ich brauche einen groben Rahmen", "Ich bevorzuge klare Vorgaben", "Das stresst mich"], "dimension": "autonomy"}, {"id": 10, "type": "rank", "question": "Was motiviert dich am stärksten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 11, "type": "scale", "question": "Wie wichtig ist dir Ästhetik in deiner Arbeitsumgebung?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "aesthetic"}, {"id": 12, "type": "single", "question": "Was würdest du eher wählen?", "options": ["Ein kleines kreatives Team mit viel Freiheit", "Ein großes Unternehmen mit starkem Namen", "Ein Start-up mit hohem Risiko", "Eine etablierte Firma mit klarer Struktur"], "dimension": "environment"}, {"id": 13, "type": "scale", "question": "Wie sehr reizt dich die Eventwelt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 14, "type": "scale", "question": "Wie sehr reizt dich Design?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 15, "type": "scale", "question": "Wie sehr reizt dich Kunst und Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 16, "type": "scale", "question": "Wie sehr reizt dich Reisen als Bestandteil eines Jobs?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 17, "type": "scale", "question": "Wie wichtig ist dir Internationalität?", "options": ["1 – unwichtig", "2 – eher unwichtig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 18, "type": "scale", "question": "Wie wichtig ist dir langfristig ein hohes Einkommen?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 19, "type": "scale", "question": "Wie wichtig ist dir Sicherheit und Planbarkeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 20, "type": "scale", "question": "Wie attraktiv findest du Unternehmertum?", "options": ["1 – gar nicht", "2 – etwas", "3 – interessant", "4 – sehr attraktiv"], "dimension": "entrepreneur"}, {"id": 21, "type": "rank", "question": "Wenn du ein eigenes Projekt starten würdest, was reizt dich am meisten?", "options": ["Die Vision", "Die Menschen", "Das Produkt", "Das Wachstum"], "dimension": "entrepreneur"}, {"id": 22, "type": "scale", "question": "Wie viel Risiko würdest du für eine spannende Chance akzeptieren?", "options": ["1 – fast keines", "2 – wenig", "3 – einiges", "4 – viel"], "dimension": "risk"}, {"id": 23, "type": "scale", "question": "Wie schnell langweilen dich Routinen?", "options": ["1 – fast nie", "2 – selten", "3 – relativ schnell", "4 – sehr schnell"], "dimension": "variety"}, {"id": 24, "type": "scale", "question": "Wie wichtig ist dir Abwechslung?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "variety"}, {"id": 25, "type": "single", "question": "Was klingt besser?", "options": ["Viele kleine Projekte", "Ein großes Projekt über Monate", "Eine Mischung", "Klare wiederkehrende Aufgaben"], "dimension": "variety"}, {"id": 26, "type": "scale", "question": "Wie gerne präsentierst du vor anderen?", "options": ["1 – sehr ungern", "2 – eher ungern", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 27, "type": "scale", "question": "Wie wichtig ist Teamarbeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 28, "type": "scale", "question": "Wie gerne übernimmst du Verantwortung?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 29, "type": "rank", "question": "Was ist dir bei Kolleg:innen am wichtigsten?", "options": ["Kreativität", "Verlässlichkeit", "Ambition", "Empathie"], "dimension": "people"}, {"id": 30, "type": "scale", "question": "Wie wichtig ist dir ein gutes Arbeitsklima?", "options": ["1 – etwas", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "people"}, {"id": 31, "type": "scale", "question": "Wie sehr interessiert dich Markenaufbau?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 32, "type": "scale", "question": "Wie sehr interessiert dich Marketing?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 33, "type": "scale", "question": "Wie sehr interessiert dich Mode?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 34, "type": "scale", "question": "Wie sehr interessiert dich Luxus?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 35, "type": "scale", "question": "Wie sehr interessiert dich Hospitality?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 36, "type": "scale", "question": "Wie sehr interessiert dich Entertainment?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 37, "type": "scale", "question": "Wie sehr interessiert dich Technologie?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 38, "type": "scale", "question": "Wie sehr interessiert dich Start-up-Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "entrepreneur"}, {"id": 39, "type": "scale", "question": "Wie wichtig ist dir gesellschaftlicher Impact?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 40, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit einen Sinn hat?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 41, "type": "scale", "question": "Wie wichtig ist dir Status?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 42, "type": "single", "question": "Welche Motivation ist dir am wichtigsten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 43, "type": "single", "question": "Wie gehst du mit Kritik um?", "options": ["Ich nutze sie direkt", "Ich denke darüber nach", "Ich brauche Abstand", "Ich nehme sie ungern an"], "dimension": "learning"}, {"id": 44, "type": "scale", "question": "Wie gerne lernst du neue Dinge?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "learning"}, {"id": 45, "type": "scale", "question": "Wie wichtig ist dir persönliche Entwicklung?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "learning"}, {"id": 46, "type": "single", "question": "Was beschreibt dich eher?", "options": ["Generalist:in", "Spezialist:in", "T-shaped: beides", "Noch unklar"], "dimension": "learning"}, {"id": 47, "type": "scale", "question": "Wie gerne arbeitest du mit Zahlen?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 48, "type": "scale", "question": "Wie gerne recherchierst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 49, "type": "scale", "question": "Wie gerne schreibst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 50, "type": "scale", "question": "Wie gerne verhandelst du?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 51, "type": "scale", "question": "Wie wichtig ist dir eine internationale Karriere?", "options": ["1 – unwichtig", "2 – vielleicht", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 52, "type": "single", "question": "Würdest du für ein gutes Praktikum mehrere Monate ins Ausland gehen?", "options": ["Sofort", "Wahrscheinlich", "Vielleicht", "Eher nicht"], "dimension": "international"}, {"id": 53, "type": "rank", "question": "Welche Stadtatmosphäre reizt dich am meisten?", "options": ["Kreativ & kulturell", "Business & international", "Ruhig & hochwertig", "Dynamisch & jung"], "dimension": "environment"}, {"id": 54, "type": "scale", "question": "Wie wichtig ist dir, dass dein Job Reisen ermöglicht?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 55, "type": "scale", "question": "Wie wichtig ist dir Flexibilität beim Arbeitsort?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "autonomy"}, {"id": 56, "type": "scale", "question": "Wie wichtig ist dir Work-Life-Balance?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "lifestyle"}, {"id": 57, "type": "single", "question": "Würdest du für einen Traumjob zeitweise sehr intensiv arbeiten?", "options": ["Ja, sofort", "Eher ja", "Eher nein", "Nein"], "dimension": "career"}, {"id": 58, "type": "scale", "question": "Wie wichtig ist dir Freizeit für deine Identität?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 59, "type": "scale", "question": "Wie wichtig ist dir ein soziales Umfeld außerhalb der Arbeit?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 60, "type": "scale", "question": "Wie wichtig ist dir kulturelles Leben in deiner Stadt?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 61, "type": "scale", "question": "Wie sehr reizt dich die Arbeit mit Künstler:innen oder Kreativen?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 62, "type": "scale", "question": "Wie sehr reizt dich die Organisation kreativer Projekte?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 63, "type": "scale", "question": "Wie sehr reizt dich das Entwickeln von Konzepten?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 64, "type": "scale", "question": "Wie sehr reizt dich Kundenkontakt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 65, "type": "scale", "question": "Wie sehr reizt dich B2B-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 66, "type": "scale", "question": "Wie sehr reizt dich B2C-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 67, "type": "scale", "question": "Wie wichtig ist dir ein sichtbares Endprodukt?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 68, "type": "scale", "question": "Wie gerne organisierst du Dinge?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 69, "type": "scale", "question": "Wie gut kannst du viele Dinge gleichzeitig verfolgen?", "options": ["1 – schwer", "2 – mittel", "3 – gut", "4 – sehr gut"], "dimension": "organization"}, {"id": 70, "type": "single", "question": "Wie reagierst du auf kurzfristige Änderungen?", "options": ["Ich mag die Dynamik", "Ich passe mich an", "Ich brauche etwas Zeit", "Das stresst mich"], "dimension": "variety"}, {"id": 71, "type": "scale", "question": "Wie wichtig ist dir Struktur?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "organization"}, {"id": 72, "type": "scale", "question": "Wie wichtig ist dir Spontaneität?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 73, "type": "scale", "question": "Wie gerne leitest du Meetings?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 74, "type": "scale", "question": "Wie gerne baust du Beziehungen auf?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 75, "type": "scale", "question": "Wie wichtig ist Networking für dich?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 76, "type": "scale", "question": "Wie leicht fällt es dir, auf fremde Menschen zuzugehen?", "options": ["1 – schwer", "2 – eher schwer", "3 – eher leicht", "4 – sehr leicht"], "dimension": "people"}, {"id": 77, "type": "scale", "question": "Wie gerne arbeitest du mit externen Partnern?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 78, "type": "scale", "question": "Wie gerne koordinierst du unterschiedliche Interessen?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 79, "type": "scale", "question": "Wie wichtig ist dir Kreativität im Alltag?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "creative"}, {"id": 80, "type": "scale", "question": "Wie wichtig ist dir persönlicher Ausdruck?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 81, "type": "scale", "question": "Wie sehr reizt dich Fotografie/Visual Content?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 82, "type": "scale", "question": "Wie sehr reizt dich Social Media als Berufsfeld?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 83, "type": "scale", "question": "Wie sehr reizt dich PR/Kommunikation?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "communication"}, {"id": 84, "type": "scale", "question": "Wie sehr reizt dich Consulting?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "analytical"}, {"id": 85, "type": "scale", "question": "Wie sehr reizt dich klassische Unternehmensberatung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 86, "type": "scale", "question": "Wie sehr reizt dich Recruiting/People?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 87, "type": "scale", "question": "Wie sehr reizt dich Business Development?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 88, "type": "scale", "question": "Wie sehr reizt dich Produktentwicklung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 89, "type": "scale", "question": "Wie sehr reizt dich Innovation/Trend Research?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 90, "type": "scale", "question": "Wie sehr reizt dich Cultural Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 91, "type": "scale", "question": "Wie sehr reizt dich Event Production?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 92, "type": "scale", "question": "Wie sehr reizt dich Travel Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 93, "type": "scale", "question": "Wie sehr reizt dich Luxury Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 94, "type": "scale", "question": "Wie sehr reizt dich Art/Design Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 95, "type": "scale", "question": "Wie wichtig ist dir, später viele Türen offen zu haben?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 96, "type": "scale", "question": "Wie wichtig ist dir ein klarer Karrierepfad?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 97, "type": "scale", "question": "Wie wichtig ist dir Prestige deines Arbeitgebers?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 98, "type": "rank", "question": "Was wäre für dich ein ideales Praktikum?", "options": ["Ich darf viel ausprobieren", "Ich bekomme Verantwortung", "Ich lerne von Top-Leuten", "Ich arbeite an etwas Sichtbarem"], "dimension": "learning"}, {"id": 99, "type": "single", "question": "Welche Aussage beschreibt dich am ehesten?", "options": ["Ich habe viele Interessen", "Ich habe eine klare Leidenschaft", "Ich möchte mich erst ausprobieren", "Ich suche vor allem Stabilität"], "dimension": "variety"}, {"id": 100, "type": "single", "question": "Was wäre schlimmer?", "options": ["Langeweile", "Überforderung", "Unsicherheit", "Zu wenig Anerkennung"], "dimension": "motivation"}],app=document.getElementById('app');
