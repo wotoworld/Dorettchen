@@ -77,6 +77,26 @@ Die short_description ist sehr kurz.
 Die summary erklärt in 2–4 Sätzen, was dieses Ergebnis im Kontext der Antworten bedeutet.
 
 --------------------------------------------------
+ZUSÄTZLICHE PROFIL-ACHSEN
+--------------------------------------------------
+
+Erstelle zusätzlich 4 bis 6 visuelle Achsen, die unterschiedliche Seiten des Profils zueinander setzen.
+Beispiele:
+- Struktur ↔ Freiheit
+- Analyse ↔ Kreativität
+- Einzelarbeit ↔ Zusammenarbeit
+- Stabilität ↔ Veränderung
+- Konzept ↔ Umsetzung
+- Sicherheit ↔ Risiko
+
+Wähle nur Achsen, die durch die Antworten sinnvoll gestützt werden. Der score beschreibt die Position auf der Achse von 0 bis 100.
+
+Jede Achse enthält:
+{ "name": "...", "score": 0 }
+
+Wenn sich aus den Antworten ein echtes Interesse an Kunst, Design, Kultur oder kreativer Arbeit ergibt, soll dieses Interesse sichtbar bleiben und nicht automatisch von Business-/Strategie-Richtungen verdrängt werden. Es dürfen ausdrücklich Richtungen wie Art/Design Management, Cultural Management, Creative Production, Brand/Creative Strategy, Events oder ähnliche Schnittstellen auftauchen, sofern die Antworten sie stützen.
+
+--------------------------------------------------
 PROFIL-ZUSAMMENFASSUNG
 --------------------------------------------------
 
@@ -236,6 +256,13 @@ Exakte Struktur:
       }
     ]
   },
+
+  "career_axes": [
+    {
+      "name": "...",
+      "score": 0
+    }
+  ],
 
   "profile": {
     "title": "...",
