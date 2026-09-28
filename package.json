@@ -1,0 +1,11 @@
+{
+  "name": "doro-career-discovery",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "openai": "latest"
+  }
+}
