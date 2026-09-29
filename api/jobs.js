@@ -1,76 +1,121 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 const system = `
-Du bist der Job-Finder für eine Career-Discovery-App.
+Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
 
-Suche AKTUELLE, real existierende Praktikumsstellen, die zu dem übergebenen Career Profile passen könnten.
-Priorität: Berlin. Ergänze nur dann andere europäische Städte, wenn die Stelle wirklich relevant ist.
+Deine Aufgabe:
+Finde 12 bis 15 AKTUELL auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
 
 WICHTIG:
-- Nutze die Websuche.
-- Suche nach Stellen, die aktuell auffindbar und möglichst aktuell ausgeschrieben sind.
-- Bevorzuge offizielle Karriere-Seiten von Unternehmen sowie etablierte Jobbörsen.
-- Erfinde niemals Unternehmen, Stellen, Fristen oder URLs.
-- Eine Stelle darf nur aufgenommen werden, wenn du eine konkrete Quelle/URL gefunden hast.
-- Keine endgültigen Aussagen wie "perfekt für dich". Formuliere "könnte interessant sein", weil das Profil nur eine Orientierung ist.
-- Wenn du keine ausreichend verlässlichen Stellen findest, gib weniger Ergebnisse zurück statt erfundene.
-- Achte besonders auf Schnittstellen aus BWL, Kunst, Design, Kultur, Events, Brand, Creative Production, Kommunikation, People, Innovation und internationalen Umfeldern, sofern das Profil diese Bereiche stützt.
+- Nutze zwingend die Websuche.
+- Suche live im Internet.
+- Bevorzuge offizielle Karriere-/Bewerbungsseiten von Unternehmen und seriöse Jobplattformen.
+- Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich in der Websuche gefunden hast.
+- Erfinde niemals Unternehmen, Stellen, URLs oder Anforderungen.
+- Bevorzuge ausgeschriebene, aktuell erreichbare Stellen.
+- Wenn du erkennst, dass eine Ausschreibung geschlossen oder abgelaufen ist, gib sie nicht zurück.
+- Wenn kein konkreter Bewerbungslink auffindbar ist, gib die Stelle nicht zurück.
+- Suche nicht nur nach exakt einem Beruf, sondern nach mehreren passenden Richtungen aus dem Profil.
+- Berücksichtige insbesondere Standort, Branche, Kreativität, Menschenkontakt, Events, Design, Kunst, Reisen, Marken, Kommunikation, Strategie und Internationalität, soweit sie zum Profil passen.
+- Wenn der Standort im Profil fehlt, bevorzuge Berlin und danach andere große europäische Städte.
+- Erkläre bei jeder Stelle kurz, warum sie zum Profil passt.
+- Verwende das heutige Datum und behandle Aktualität als wichtig.
 
 Gib ausschließlich valides JSON zurück:
+
 {
+  "checked_at": "YYYY-MM-DD",
   "jobs": [
     {
       "title": "...",
       "company": "...",
       "location": "...",
       "type": "Praktikum",
-      "description": "Kurze sachliche Beschreibung der Rolle und Aufgaben.",
-      "why_relevant": "Warum diese Stelle zu konkreten Mustern im Profil passen könnte.",
-      "deadline": "...",
-      "url": "https://..."
+      "url": "https://...",
+      "description": "...",
+      "why_fit": "...",
+      "source": "..."
     }
   ]
 }
+
+Die URL muss direkt zu der gefundenen Ausschreibung oder zur konkreten Bewerbungsseite führen.
 `;
 
-function cleanJson(text) {
-  const raw = String(text || "").trim();
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced ? fenced[1].trim() : raw;
-  const first = candidate.indexOf("{");
-  const last = candidate.lastIndexOf("}");
-  return first >= 0 && last > first ? candidate.slice(first, last + 1) : candidate;
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
+  }
+
   try {
-    if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt");
+    const profile = req.body?.profile || {};
 
     const r = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-      reasoning: { effort: "high" },
-      tools: [{ type: "web_search" }],
+
+      reasoning: {
+        effort: "high"
+      },
+
+      tools: [
+        {
+          type: "web_search",
+          search_context_size: "high",
+          user_location: {
+            type: "approximate",
+            country: "AT",
+            city: "Vienna",
+            timezone: "Europe/Vienna"
+          }
+        }
+      ],
+
+      tool_choice: "required",
+
       input: [
-        { role: "system", content: system },
+        {
+          role: "system",
+          content: system
+        },
         {
           role: "user",
-          content: JSON.stringify({
-            current_date: new Date().toISOString().slice(0, 10),
-            preferred_city: "Berlin",
-            preferred_region: "Europe",
-            profile: req.body?.profile || {}
-          })
+          content:
+            "Hier ist das Career-Profil:\n\n" +
+            JSON.stringify(profile) +
+            "\n\nSuche jetzt live nach passenden aktuellen Stellen."
         }
       ]
     });
 
-    const parsed = JSON.parse(cleanJson(r.output_text));
-    return res.status(200).json(parsed);
+    const result = JSON.parse(r.output_text);
+
+    if (!Array.isArray(result.jobs)) {
+      throw new Error("Ungültiges Stellenformat");
+    }
+
+    result.jobs = result.jobs
+      .filter(
+        job =>
+          job &&
+          job.title &&
+          job.company &&
+          job.url
+      )
+      .slice(0, 15);
+
+    return res.status(200).json(result);
+
   } catch (error) {
-    console.error("JOBS ERROR:", error);
-    return res.status(500).json({ error: error.message || "Stellensuche fehlgeschlagen" });
+    return res.status(500).json({
+      error:
+        error.message ||
+        "Live-Stellensuche fehlgeschlagen."
+    });
   }
 }
