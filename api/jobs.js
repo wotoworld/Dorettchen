@@ -24,6 +24,7 @@ WICHTIG:
 - Wenn der Standort im Profil fehlt, bevorzuge Berlin und danach andere große europäische Städte.
 - Erkläre bei jeder Stelle kurz, warum sie zum Profil passt.
 - Verwende das heutige Datum und behandle Aktualität als wichtig.
+- Wenn bereits gefundene Stellen übergeben wurden, gib diese nicht erneut zurück. Suche stattdessen andere konkrete Ausschreibungen.
 
 Gib ausschließlich valides JSON zurück:
 
@@ -56,13 +57,15 @@ export default async function handler(req, res) {
   try {
     const profile = req.body?.profile || {};
 
+    const exclude = Array.isArray(req.body?.exclude)
+      ? req.body.exclude.filter(Boolean).slice(0, 100)
+      : [];
+
     const r = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-
       reasoning: {
         effort: "high"
       },
-
       tools: [
         {
           type: "web_search",
@@ -75,9 +78,7 @@ export default async function handler(req, res) {
           }
         }
       ],
-
       tool_choice: "required",
-
       input: [
         {
           role: "system",
@@ -88,7 +89,9 @@ export default async function handler(req, res) {
           content:
             "Hier ist das Career-Profil:\n\n" +
             JSON.stringify(profile) +
-            "\n\nSuche jetzt live nach passenden aktuellen Stellen."
+            "\n\nBereits gefundene Stellen, die NICHT erneut zurückgegeben werden sollen:\n" +
+            JSON.stringify(exclude) +
+            "\n\nSuche jetzt live nach weiteren passenden aktuellen Stellen."
         }
       ]
     });
@@ -100,22 +103,14 @@ export default async function handler(req, res) {
     }
 
     result.jobs = result.jobs
-      .filter(
-        job =>
-          job &&
-          job.title &&
-          job.company &&
-          job.url
-      )
+      .filter(j => j && j.title && j.company && j.url)
       .slice(0, 15);
 
     return res.status(200).json(result);
 
   } catch (error) {
     return res.status(500).json({
-      error:
-        error.message ||
-        "Live-Stellensuche fehlgeschlagen."
+      error: error.message || "Live-Stellensuche fehlgeschlagen."
     });
   }
 }
