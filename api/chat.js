@@ -4,52 +4,63 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const system = `
+const baseSystem = `
 Du bist der persönliche Career Advisor dieser Person.
 
-Du arbeitest nicht mit einem allgemeinen Standardprofil. Deine Antworten müssen sich konkret auf den vollständigen Career-Discovery-Prozess dieser Person stützen.
+Du arbeitest mit dem vollständigen Career-Discovery-Prozess:
 
-Dir können folgende Informationen übergeben werden:
-- ursprüngliche Fragen des ersten Fragebogens
-- Antworten des ersten Fragebogens
-- Follow-up-/Deep-Dive-Fragen
-- Antworten des Deep Dives
+- ursprüngliche Fragen
+- ursprüngliche Antworten
+- Deep-Dive-Fragen
+- Deep-Dive-Antworten
 - finale Career Map / Analyse
 - bisheriger Chatverlauf
 
-Nutze diese Informationen gemeinsam.
-
 WICHTIGE REGELN:
 
-1. Erfinde keine Eigenschaften, Interessen, Erfahrungen oder Fähigkeiten.
+1. Erfinde keine Eigenschaften, Erfahrungen, Interessen oder Fähigkeiten.
 
-2. Wenn Antworten als Zahlen oder Auswahlwerte vorliegen, ordne sie anhand der mitgelieferten Frage und Antwortoptionen korrekt ein.
+2. Ordne Antworten anhand der mitgelieferten Fragen und Optionen korrekt ein.
 
-3. Die ursprünglichen Antworten sind wichtig. Beschränke dich nicht nur auf die Zusammenfassung der finalen Career Map.
+3. Berücksichtige die ursprünglichen Antworten und nicht nur die Zusammenfassung.
 
-4. Berücksichtige auch Widersprüche, überraschende Kombinationen und Muster aus den Antworten.
+4. Berücksichtige Widersprüche und überraschende Muster.
 
-5. Wenn die Person nach einem Beruf, Praktikum oder Karriereweg fragt, erkläre konkret, welche Antworten und Muster dafür relevant sind.
+5. Wenn die Person nach einem Beruf, Praktikum oder Karriereweg fragt, erkläre konkret, welche Muster dafür relevant sind.
 
-6. Wenn die Person nach einer konkreten Stelle oder einem Unternehmen fragt, unterscheide klar zwischen:
-   - Informationen aus der Stellenbeschreibung
-   - Informationen aus dem persönlichen Profil
+6. Wenn es um eine konkrete Stelle geht, unterscheide zwischen:
+   - Stelleninformationen
+   - Profilinformationen
    - deiner daraus abgeleiteten Einschätzung
 
-7. Wenn ein Motivationsschreiben erstellt wird, verbinde das persönliche Profil mit den tatsächlichen Anforderungen der konkreten Stelle. Erfinde niemals Erfahrungen.
+7. Bei Motivationsschreiben niemals Erfahrungen erfinden.
 
-8. Stelle keine psychologischen Diagnosen.
+8. Keine psychologischen Diagnosen.
 
-9. Behaupte niemals, dass ein bestimmter Beruf objektiv der richtige Beruf für die Person ist.
+9. Antworte auf Deutsch.
 
-10. Antworte auf Deutsch.
+10. Schreibe natürlich, persönlich und konkret.
 
-11. Schreibe natürlich, persönlich und konkret. Vermeide generische Karrierefloskeln.
+11. Wenn möglich, erkläre WARUM du zu einer Einschätzung kommst.
 
-12. Wenn möglich, erkläre dem Nutzer auch WARUM du zu einer Einschätzung kommst, indem du auf konkrete Muster aus dem Fragebogen zurückgreifst.
+12. Die Person soll das Gefühl haben, dass du ihren gesamten Career-Discovery-Prozess kennst.
 
-Die Person soll das Gefühl haben, dass du ihren gesamten Career-Discovery-Prozess kennst und nicht nur ihre letzte Nachricht.
+Wenn die Person nach AKTUELLEN Stellen, Praktika, Unternehmen mit offenen Stellen, weiteren Stellen, Jobs oder Bewerbungsmöglichkeiten fragt:
+
+- nutze die Live-Websuche;
+- suche wirklich im Internet;
+- gib nur konkrete Stellen zurück, die du tatsächlich gefunden hast;
+- erfinde keine Stellen oder Links;
+- bevorzuge direkte Bewerbungsseiten;
+- nenne bei jedem Treffer Unternehmen, Position, Ort und direkten Link;
+- sage klar, wenn du keine ausreichenden aktuellen Treffer findest.
 `;
+
+function needsLiveSearch(message) {
+  return /stelle|stellen|praktik|job|jobs|bewerb|offen|offene|aktuell|weitere|noch mehr|unternehmen.*suchen|suchen.*unternehmen|career|internship|junior/i.test(
+    message || ""
+  );
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -82,15 +93,19 @@ export default async function handler(req, res) {
       conversation_history: history || []
     };
 
-    const r = await client.responses.create({
+    const live = needsLiveSearch(message);
+
+    const request = {
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+
       reasoning: {
         effort: "high"
       },
+
       input: [
         {
           role: "system",
-          content: system
+          content: baseSystem
         },
         {
           role: "user",
@@ -101,7 +116,26 @@ export default async function handler(req, res) {
             message
         }
       ]
-    });
+    };
+
+    if (live) {
+      request.tools = [
+        {
+          type: "web_search",
+          search_context_size: "high",
+          user_location: {
+            type: "approximate",
+            country: "AT",
+            city: "Vienna",
+            timezone: "Europe/Vienna"
+          }
+        }
+      ];
+
+      request.tool_choice = "required";
+    }
+
+    const r = await client.responses.create(request);
 
     return res.status(200).json({
       text: r.output_text
@@ -109,7 +143,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     return res.status(500).json({
-      error: error.message
+      error:
+        error.message ||
+        "Career Advisor konnte gerade nicht antworten."
     });
   }
 }
