@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { rankForLocationMix, verifyJobs } from "./job-verification.js";
+import { PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
   if (req.method !== "GET") {
     log("response_sent", { httpStatus: 405 });
     return res.status(405).json({
-      error: "Method not allowed"
+      status: "error", code: "method_not_allowed", message: "Diese Anfrage wird nicht unterstützt."
     });
   }
 
@@ -35,12 +36,16 @@ export default async function handler(req, res) {
       log("response_sent", { httpStatus: 400, status: "error" });
       return res.status(400).json({
         status: "error",
-        error: "Missing jobId"
+        code: "invalid_request",
+        message: "Die Live-Suche konnte nicht zugeordnet werden."
       });
     }
 
     log("openai_retrieve_started");
-    const response = await client.responses.retrieve(jobId);
+    const response = await withRateLimitRetry(() => client.responses.retrieve(jobId), {
+      attempts: 5,
+      onRetry: ({ attempt, delay }) => log("openai_rate_limit_retry", { attempt, delayMs: delay })
+    });
 
     log("openai_retrieve_succeeded", {
       responseId: response.id,
@@ -73,11 +78,7 @@ export default async function handler(req, res) {
         );
 
         log("response_sent", { httpStatus: 500, status: "error", reason: "empty_output" });
-        return res.status(500).json({
-          status: "error",
-          error:
-            "Die Stellensuche wurde abgeschlossen, hat aber kein Ergebnis geliefert."
-        });
+        return res.status(500).json(PUBLIC_JOB_ERROR);
       }
 
       let result;
@@ -88,20 +89,12 @@ export default async function handler(req, res) {
         console.error("JOBS JSON PARSE ERROR:", text);
 
         log("response_sent", { httpStatus: 500, status: "error", reason: "invalid_json" });
-        return res.status(500).json({
-          status: "error",
-          error:
-            "Die Stellensuche hat kein gültiges Ergebnis zurückgegeben."
-        });
+        return res.status(500).json(PUBLIC_JOB_ERROR);
       }
 
       if (!result || !Array.isArray(result.jobs)) {
         log("response_sent", { httpStatus: 500, status: "error", reason: "invalid_result_shape" });
-        return res.status(500).json({
-          status: "error",
-          error:
-            "Das Ergebnis der Stellensuche ist ungültig."
-        });
+        return res.status(500).json(PUBLIC_JOB_ERROR);
       }
 
       const candidates = result.jobs
@@ -138,22 +131,12 @@ export default async function handler(req, res) {
       );
 
       log("response_sent", { httpStatus: 500, status: "error", reason: "openai_failed" });
-      return res.status(500).json({
-        status: "error",
-        error:
-          response.error?.message ||
-          response.last_error?.message ||
-          "Die Live-Stellensuche ist fehlgeschlagen."
-      });
+      return res.status(503).json(PUBLIC_JOB_ERROR);
     }
 
     if (response.status === "cancelled") {
       log("response_sent", { httpStatus: 500, status: "error", reason: "openai_cancelled" });
-      return res.status(500).json({
-        status: "error",
-        error:
-          "Die Live-Stellensuche wurde abgebrochen."
-      });
+      return res.status(503).json(PUBLIC_JOB_ERROR);
     }
 
     if (response.status === "incomplete") {
@@ -163,12 +146,7 @@ export default async function handler(req, res) {
         reason: "openai_incomplete",
         incompleteDetails: response.incomplete_details || null
       });
-      return res.status(500).json({
-        status: "error",
-        error:
-          response.incomplete_details?.reason ||
-          "Die Live-Stellensuche wurde nicht vollständig abgeschlossen."
-      });
+      return res.status(503).json(PUBLIC_JOB_ERROR);
     }
 
     log("response_sent", { httpStatus: 200, status: response.status || "queued" });
@@ -192,11 +170,6 @@ export default async function handler(req, res) {
       }
     }));
 
-    return res.status(500).json({
-      status: "error",
-      error:
-        error.message ||
-        "Der Status der Stellensuche konnte nicht abgerufen werden."
-    });
+    return res.status(503).json(PUBLIC_JOB_ERROR);
   }
 }
