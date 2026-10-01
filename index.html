@@ -961,29 +961,352 @@ ${e.message||'Bitte versuche es noch einmal.'}`}s.motivationLoading=false;save()
 function savedJobsPage(){const list=getSavedJobsGlobal();const cards=list.map((j,i)=>{let actions='';if(j.url)actions+='<a class="btn" href="'+esc(j.url)+'" target="_blank" rel="noopener">Stelle öffnen ↗</a>';actions+='<button class="btn alt" onclick="openMotivationBySaved('+i+')">Motivationsschreiben</button>';actions+='<button class="btn alt" onclick="removeSavedJob('+i+')">Entfernen</button>';return '<article class="card savedCard"><div class="jobMeta"><span>'+esc(j.location||'')+'</span><span>'+esc(j.type||'Praktikum')+'</span></div><h3>'+esc(j.title||'')+'</h3><div class="jobCompany">'+esc(j.company||'')+'</div><p>'+esc(j.description||'')+'</p><div class="savedCardActions">'+actions+'</div></article>'}).join('');app.innerHTML='<div class="savedPage"><div class="savedHeader"><div><div class="tiny">DEINE STELLEN</div><h1 style="font-size:clamp(38px,6vw,60px);margin:8px 0">Gespeicherte Stellen</h1><p class="muted">Diese Liste bleibt erhalten, auch wenn du den Test neu startest.</p></div><button class="btn alt" onclick="s.phase=\'final\';render()">← Career Map</button></div>'+(list.length?'<div class="savedJobsBar"><button class="btn alt" onclick="copySavedLinks()">Alle Links kopieren</button></div><div class="savedList">'+cards+'</div>':'<div class="card"><h3>Noch keine gespeicherten Stellen.</h3><p class="muted">Speichere interessante Stellen direkt in deiner Career Map.</p><button class="btn" onclick="s.phase=\'final\';render()">Zur Career Map →</button></div>')+'</div>'}
 function motivationPage(){const j=s.motivationJob||{},note=esc(s.motivationNote||''),text=esc(s.motivationText||'');const side='<div class="card motivationSide"><div class="tiny">DIE STELLE</div><h3>'+esc(j.company||'')+' · '+esc(j.title||'')+'</h3><p>'+esc(j.description||'')+'</p><div class="jobWhy"><b>Warum interessant</b><p>'+esc(j.why_relevant||j.why_fit||'')+'</p></div>'+(j.url?'<p style="margin-top:18px"><a class="btn" href="'+esc(j.url)+'" target="_blank" rel="noopener">Stelle öffnen ↗</a></p>':'')+'<div class="tiny" style="margin-top:24px">DEIN PERSÖNLICHER INPUT</div><p>Ein paar eigene Gedanken machen das Schreiben glaubwürdiger.</p><textarea id="motivationNote" class="motivationText" style="min-height:150px" placeholder="Was reizt dich an dieser Stelle? Warum dieses Unternehmen? Was möchtest du lernen?">'+note+'</textarea><button class="btn" style="margin-top:10px" onclick="generateMotivation()">Motivationsschreiben erstellen →</button></div>';const draft=s.motivationLoading?'<div class="motivationLoading"><div class="miniSpinner"></div><span>Ich passe dein Profil gerade auf diese Stelle an…</span></div>':'<textarea id="motivationText" class="motivationText" placeholder="Hier erscheint dein Motivationsschreiben.">'+text+'</textarea><div class="motivationTools"><button class="btn alt" onclick="copyMotivation()">Text kopieren</button><button class="btn alt" onclick="generateMotivation()">Neu formulieren</button></div>';app.innerHTML='<div class="motivationPage"><div class="motivationHeader"><button class="btn alt" onclick="backFromMotivation()">← Zurück</button><div class="tiny" style="margin-top:28px">BEWERBUNG VORBEREITEN</div><h1 style="font-size:clamp(38px,6vw,60px);margin:8px 0">'+esc(j.title||'Motivationsschreiben')+'</h1><div class="jobCompany">'+esc(j.company||'')+'</div><div class="motivationMeta"><span>'+esc(j.location||'')+'</span><span>'+esc(j.type||'Praktikum')+'</span></div></div><div class="motivationGrid">'+side+'<div class="card motivationSide"><div class="tiny">DEIN ENTWURF</div>'+draft+'</div></div></div>'}
 
-async function loadJobs(append=false){
-  if(s.jobsLoading)return;
-  if(!append && s.jobsLoaded)return;
-  s.jobsLoading=true;s.jobsError='';save();render();
-  try{
-    const existing=Array.isArray(s.jobs)?s.jobs:[];
-    const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:s.profile,exclude:existing.map(j=>j.url).filter(Boolean)})});
-    if(!r.ok)throw Error(await r.text());
-    const d=await r.json();
-    const incoming=Array.isArray(d.jobs)?d.jobs:[];
-    const seen=new Set(existing.map(j=>String(j.url||`${j.company||''}|${j.title||''}`)));
-    const fresh=incoming.filter(j=>{const key=String(j.url||`${j.company||''}|${j.title||''}`);if(seen.has(key))return false;seen.add(key);return true;});
-    s.jobs=append?[...existing,...fresh]:fresh;
-    s.jobsLoaded=true;
-    if(!append && !s.jobs.length) s.jobsError='Es wurden gerade keine konkreten Ausschreibungen gefunden.';
-  }catch(e){
-    s.jobsError=e.message||'Die Stellensuche konnte gerade nicht geladen werden.';
-    if(!append)s.jobs=[];
-    s.jobsLoaded=true;
+async function loadJobs(append = false) {
+  if (s.jobsLoading) return;
+
+  /*
+   * Bei einer normalen ersten Suche:
+   * keine bestehenden Jobs notwendig.
+   *
+   * Bei "Weitere Stellen suchen":
+   * bereits gefundene Jobs an die API übergeben,
+   * damit sie nicht erneut ausgespielt werden.
+   */
+  const existingJobs = append && Array.isArray(s.jobs)
+    ? s.jobs
+    : [];
+
+  const exclude = existingJobs
+    .map(j => ({
+      title: j?.title || "",
+      company: j?.company || "",
+      url: j?.url || ""
+    }))
+    .filter(j => j.title || j.company || j.url);
+
+  s.jobsLoading = true;
+  s.jobsError = "";
+  save();
+  render();
+
+  try {
+
+    /*
+     * ----------------------------------------------------
+     * 1. BACKGROUND JOB STARTEN
+     * ----------------------------------------------------
+     *
+     * /api/jobs antwortet jetzt sofort mit einer jobId.
+     * Die eigentliche Live-Websuche läuft im Hintergrund.
+     */
+    let startResponse = null;
+    let startData = null;
+    let startError = null;
+
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        startResponse = await fetch("/api/jobs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            profile: s.profile,
+            exclude
+          })
+        });
+
+        const raw = await startResponse.text();
+
+        try {
+          startData = JSON.parse(raw);
+        } catch {
+          startData = {
+            error: raw || "Ungültige Antwort der Stellensuche."
+          };
+        }
+
+        if (!startResponse.ok) {
+          throw new Error(
+            startData.error ||
+            `Stellensuche konnte nicht gestartet werden (${startResponse.status}).`
+          );
+        }
+
+        startError = null;
+        break;
+
+      } catch (e) {
+        startError = e;
+
+        /*
+         * Kurze Pause vor einem erneuten Versuch.
+         */
+        if (retry < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+      }
+    }
+
+    if (startError) {
+      throw startError;
+    }
+
+    if (!startData?.jobId) {
+      throw new Error(
+        startData?.error ||
+        "Die Live-Stellensuche hat keine Job-ID zurückgegeben."
+      );
+    }
+
+    const jobId = startData.jobId;
+
+    /*
+     * ----------------------------------------------------
+     * 2. STATUS ABFRAGEN
+     * ----------------------------------------------------
+     *
+     * Die eigentliche Suche kann jetzt mehrere Minuten laufen,
+     * ohne dass der ursprüngliche Browser-Request offen bleiben muss.
+     *
+     * Wir fragen maximal ca. 10 Minuten lang nach.
+     */
+    let completed = false;
+    let lastError = "";
+
+    const maxPolls = 300;
+
+    for (let attempt = 0; attempt < maxPolls; attempt++) {
+
+      /*
+       * Zwei Sekunden zwischen den Statusabfragen.
+       */
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      let statusData = null;
+      let pollSucceeded = false;
+
+      /*
+       * Auch einzelne Safari-/Netzwerkfehler sollen nicht
+       * die komplette Jobsuche zerstören.
+       */
+      for (let retry = 0; retry < 3 && !pollSucceeded; retry++) {
+
+        try {
+
+          const statusResponse = await fetch(
+            "/api/jobs-status?jobId=" +
+            encodeURIComponent(jobId),
+            {
+              method: "GET",
+              cache: "no-store"
+            }
+          );
+
+          const raw = await statusResponse.text();
+
+          try {
+            statusData = JSON.parse(raw);
+          } catch {
+            statusData = {
+              status: "error",
+              error: raw || "Ungültige Statusantwort."
+            };
+          }
+
+          if (!statusResponse.ok) {
+            lastError =
+              statusData?.error ||
+              `Statusabfrage fehlgeschlagen (${statusResponse.status}).`;
+
+            if (retry < 2) {
+              await new Promise(resolve =>
+                setTimeout(resolve, 1000)
+              );
+              continue;
+            }
+
+            break;
+          }
+
+          pollSucceeded = true;
+
+        } catch (e) {
+
+          lastError =
+            e?.message ||
+            "Statusabfrage fehlgeschlagen.";
+
+          if (retry < 2) {
+            await new Promise(resolve =>
+              setTimeout(resolve, 1000)
+            );
+          }
+        }
+      }
+
+      /*
+       * Wenn eine einzelne Statusabfrage fehlgeschlagen ist,
+       * einfach mit dem nächsten Poll weitermachen.
+       */
+      if (!pollSucceeded) {
+        continue;
+      }
+
+      /*
+       * --------------------------------------------------
+       * NOCH NICHT FERTIG
+       * --------------------------------------------------
+       */
+      if (
+        statusData.status === "queued" ||
+        statusData.status === "in_progress"
+      ) {
+        continue;
+      }
+
+      /*
+       * --------------------------------------------------
+       * FERTIG
+       * --------------------------------------------------
+       */
+      if (statusData.status === "complete") {
+
+        const result = statusData.result;
+
+        if (!result || !Array.isArray(result.jobs)) {
+          throw new Error(
+            "Die Live-Stellensuche hat kein gültiges Ergebnis geliefert."
+          );
+        }
+
+        const newJobs = result.jobs
+          .filter(j =>
+            j &&
+            j.title &&
+            j.company &&
+            j.url
+          );
+
+        /*
+         * Bei der ersten Suche ersetzen wir die Jobs.
+         *
+         * Bei "Weitere Stellen suchen" hängen wir die neuen
+         * Treffer an die bestehenden an.
+         */
+        if (append) {
+          const current = Array.isArray(s.jobs)
+            ? s.jobs
+            : [];
+
+          const currentKeys = new Set(
+            current.map(j =>
+              String(
+                j?.url ||
+                `${j?.company || ""}|${j?.title || ""}`
+              ).trim()
+            )
+          );
+
+          const uniqueNewJobs = newJobs.filter(j => {
+            const key = String(
+              j?.url ||
+              `${j?.company || ""}|${j?.title || ""}`
+            ).trim();
+
+            if (!key || currentKeys.has(key)) {
+              return false;
+            }
+
+            currentKeys.add(key);
+            return true;
+          });
+
+          s.jobs = [
+            ...current,
+            ...uniqueNewJobs
+          ];
+
+        } else {
+          s.jobs = newJobs;
+        }
+
+        s.jobsLoaded = true;
+        s.jobsError = "";
+        completed = true;
+
+        break;
+      }
+
+      /*
+       * --------------------------------------------------
+       * FEHLER
+       * --------------------------------------------------
+       */
+      if (statusData.status === "error") {
+        throw new Error(
+          statusData.error ||
+          "Die Live-Stellensuche ist fehlgeschlagen."
+        );
+      }
+
+      /*
+       * Unbekannter Status:
+       * nicht sofort abbrechen, sondern weiter pollen.
+       */
+    }
+
+    /*
+     * Nach dem maximalen Polling-Zeitraum:
+     */
+    if (!completed) {
+      throw new Error(
+        lastError ||
+        "Die Live-Stellensuche dauert ungewöhnlich lange. Bitte versuche es noch einmal."
+      );
+    }
+
+  } catch (e) {
+
+    console.error("LIVE JOB SEARCH ERROR:", e);
+
+    s.jobsError =
+      e?.message ||
+      "Die Live-Stellensuche konnte gerade nicht geladen werden.";
+
+    /*
+     * Bei einer zusätzlichen Suche behalten wir die bereits
+     * gefundenen Jobs.
+     *
+     * Bei der ersten Suche gibt es noch keine Jobs.
+     */
+    if (!append) {
+      s.jobs = [];
+    }
+
+    /*
+     * Wichtig:
+     * Bei einem Fehler darf "Weitere Stellen suchen" bzw.
+     * "Erneut suchen" weiterhin funktionieren.
+     */
+    s.jobsLoaded = true;
+
+  } finally {
+
+    s.jobsLoading = false;
+
+    save();
+    render();
   }
-  s.jobsLoading=false;save();render();
 }
-function loadMoreJobs(){return loadJobs(true)}
+
+
+/*
+ * Weitere Stellen suchen
+ */
+function loadMoreJobs() {
+  return loadJobs(true);
+}
 
 function chat(){
   app.innerHTML=`<div class="advisorPage"><div class="row"><div><div class="tiny">CAREER ADVISOR</div><h1 style="font-size:clamp(36px,7vw,56px);margin:8px 0">Lass uns tiefer gehen.</h1><p class="muted">Du kannst hier alles aus deinem Report weiterdenken – auch Dinge, die noch gar nicht klar sind.</p></div><button class="btn alt" onclick="s.phase='final';render()">Career Map</button></div><div class="card chat">${s.chat.map(m=>`<div class="bubble ${m.role==='user'?'me':'ai'}">${esc(m.text)}</div>`).join('')||'<div class="advisorEmpty"><div class="advisorIcon">✦</div><div><b>Womit möchtest du anfangen?</b><p class="muted">Zum Beispiel: „Ich will auch Richtung Kunst.“</p></div></div>'}${s.chatLoading?`<div class="bubble ai typingBubble"><span class="typingDots"><i></i><i></i><i></i></span><span>Ich schaue gerade in dein Profil…</span></div>`:''}</div><div class="chatbox"><input id="msg" autocomplete="off" placeholder="z. B. Welche Richtung sollte ich zuerst testen?"><button class="btn" onclick="send()" ${s.chatLoading?'disabled':''}>Senden</button></div></div>`;
