@@ -85,7 +85,6 @@ Das JSON muss exakt diese Struktur haben:
 Die Antworten sollen auf den tatsächlichen Antworten der Person basieren. Nichts erfinden.`;
 
 export default async function handler(req, res) {
-
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -93,7 +92,6 @@ export default async function handler(req, res) {
   }
 
   try {
-
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY fehlt");
     }
@@ -104,126 +102,40 @@ export default async function handler(req, res) {
       throw new Error("Questions oder Answers fehlen");
     }
 
-    let parsed = null;
-    let lastError = null;
-
-    /*
-      Der Request wird maximal 3x versucht.
-      So überlebt die Analyse kurzfristige
-      Netzwerk-/API-Probleme.
-    */
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-
-      try {
-
-        const result = await client.responses.create({
-          model: "gpt-5.6-sol",
-
-          reasoning: {
-            effort: "high"
-          },
-
-          input: [
-            {
-              role: "system",
-              content: system
-            },
-            {
-              role: "user",
-              content: JSON.stringify({
-                questions,
-                answers
-              })
-            }
-          ]
-        });
-
-        if (!result.output_text) {
-          throw new Error(
-            "Das Modell hat keine Analyse zurückgegeben."
-          );
+    // Die Analyse läuft bewusst im Background-Modus.
+    // Dadurch bleibt der Browser-Request nicht minutenlang offen.
+    const response = await client.responses.create({
+      model: "gpt-5.6-sol",
+      reasoning: {
+        effort: "high"
+      },
+      background: true,
+      store: true,
+      input: [
+        {
+          role: "system",
+          content: system
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            questions,
+            answers
+          })
         }
+      ]
+    });
 
-        try {
-
-          parsed = JSON.parse(result.output_text);
-
-        } catch (parseError) {
-
-          throw new Error(
-            "Die Analyse des Modells war kein gültiges JSON."
-          );
-        }
-
-        /*
-          Grundlegende Prüfung, ob die erwartete Struktur
-          tatsächlich vorhanden ist.
-        */
-
-        if (
-          !parsed ||
-          typeof parsed !== "object" ||
-          !parsed.career_dna ||
-          !Array.isArray(parsed.career_dna.dimensions) ||
-          !Array.isArray(parsed.self_reveals) ||
-          !Array.isArray(parsed.followup_questions)
-        ) {
-
-          throw new Error(
-            "Die Analyse hatte nicht das erwartete Format."
-          );
-        }
-
-        // Erfolgreich
-        break;
-
-      } catch (error) {
-
-        lastError = error;
-
-        console.error(
-          `ANALYZE ATTEMPT ${attempt} ERROR:`,
-          error
-        );
-
-        /*
-          Zwischen den Versuchen kurz warten.
-          Der zweite Versuch wartet länger als der erste.
-        */
-
-        if (attempt < 3) {
-
-          await new Promise(resolve =>
-            setTimeout(
-              resolve,
-              1500 * attempt
-            )
-          );
-
-        }
-      }
-    }
-
-    if (!parsed) {
-      throw lastError || new Error(
-        "Analyse fehlgeschlagen"
-      );
-    }
-
-    return res.status(200).json(parsed);
+    return res.status(202).json({
+      jobId: response.id,
+      status: response.status || "queued"
+    });
 
   } catch (error) {
-
-    console.error(
-      "ANALYZE ERROR:",
-      error
-    );
+    console.error("ANALYZE START ERROR:", error);
 
     return res.status(500).json({
-      error:
-        error.message ||
-        "Analyse fehlgeschlagen"
+      error: error.message || "Analyse konnte nicht gestartet werden."
     });
   }
 }
