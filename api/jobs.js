@@ -56,7 +56,9 @@ export default async function handler(req, res) {
   log("request_received", {
     method: req.method,
     hasProfile: Boolean(req.body?.profile),
-    excludeCount: Array.isArray(req.body?.exclude) ? req.body.exclude.length : 0
+    excludeCount: Array.isArray(req.body?.exclude) ? req.body.exclude.length : 0,
+    existingJobsCount: Math.max(0, Number(req.body?.existingJobsCount) || 0),
+    searchStarted: req.method === "POST"
   });
 
   if (req.method !== "POST") {
@@ -232,7 +234,8 @@ export default async function handler(req, res) {
     log("response_sent", {
       httpStatus: 202,
       jobId: response.id,
-      status: response.status || "queued"
+      status: response.status || "queued",
+      searchRound
     });
     return res.status(202).json({
       jobId: response.id,

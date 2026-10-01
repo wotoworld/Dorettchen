@@ -110,7 +110,15 @@ export default async function handler(req, res) {
 
       // Search results are candidates only: open and inspect every concrete listing
       // before filtering, ranking and returning anything to the browser.
-      result.jobs = rankForLocationMix(await verifyJobs(candidates), 15);
+      const verifiedCandidates = await verifyJobs(candidates);
+      result.jobs = rankForLocationMix(verifiedCandidates, 15);
+      log("verification_completed", {
+        searchRound: Number(response.metadata?.search_round) || 1,
+        candidatesFound: candidates.length,
+        candidatesVerified: verifiedCandidates.length,
+        candidatesRejected: candidates.length - verifiedCandidates.length,
+        newJobsReturned: result.jobs.length
+      });
       // Return only candidate identity fields so later rounds can avoid both
       // accepted and rejected URLs without repeating descriptions or profile data.
       result.checked_candidates = candidates.map(job => ({ url: job.url, company: job.company, title: job.title }));
