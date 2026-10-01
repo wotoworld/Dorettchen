@@ -564,6 +564,27 @@ button:focus-visible{
     font-size:12px;
   }
 }
+  /* ─────────────────────────────────────────
+   SCROLL PERFORMANCE · iPad / Safari
+   Behält das bestehende Design unverändert
+   ───────────────────────────────────────── */
+
+.careerSection {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
+}
+
+.card {
+  contain: layout paint;
+}
+
+/* Der fixe "Neu starten"-Button bleibt optisch gleich,
+   nutzt aber keinen teuren Blur-Effekt. */
+.restartBtn {
+  background: rgba(255,255,255,.94) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
 </style></head><body>
 <button class="restartBtn" onclick="resetTestData()">↻ Neu starten</button>
 <main class="wrap">
