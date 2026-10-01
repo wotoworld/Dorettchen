@@ -1,185 +1,63 @@
 import OpenAI from "openai";
+import { compactProfile, normalizeJobUrl } from "../lib/jobs.js";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const MODEL = process.env.OPENAI_JOBS_MODEL || "gpt-5.6-sol";
 
-const system = `
-Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
+const instructions = `Du recherchierst reale, derzeit offene Einstiegsstellen für eine Career-Discovery-App.
+Nutze zwingend die Live-Websuche. Jede ausgegebene Stelle muss eine konkrete, aktuell erreichbare Stellenanzeige sein. Erfinde niemals Titel, Unternehmen, Beschreibungen oder URLs. Gib keine Suchseiten, Unternehmens-Startseiten, Talent-Pools, abgelaufenen Anzeigen oder unklar verifizierbaren Treffer aus. Bevorzuge direkte Karriere- und Bewerbungsseiten; seriöse Jobbörsen sind erlaubt.
 
-DEINE AUFGABE
-Finde konkrete, aktuell auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
+Leite Suchrichtungen ausschließlich aus der übergebenen Career Map ab: Berufsfelder, Interessen, Stärken, Arbeitsweise, Branchen, Umfeld und Standortwünsche. Suche nach Praktika/Internships, passenden Traineeships und sinnvollen Junior-/Entry-Level-Rollen. Priorisiere Berlin, sofern das Profil nichts Gegenteiliges sagt; danach passende europäische Städte. Prüfe die Ausschreibung mit Web Search vor der Ausgabe. Liefere lieber wenige verifizierte Treffer als unsichere. Bereits ausgeschlossene URLs dürfen nicht wiederkehren. "why_fit" muss konkret auf Informationen aus der Career Map Bezug nehmen, ohne neue Profildaten zu erfinden. "source" nennt die Website/Quelle der konkreten Anzeige.`;
 
-Die Suche muss auf einer echten Live-Websuche basieren.
-
-WICHTIG:
-- Nutze zwingend die Websuche.
-- Suche wirklich im aktuellen Internet.
-- Verwende keine erfundenen Stellen.
-- Verwende keine erfundenen Unternehmen.
-- Verwende keine erfundenen URLs.
-- Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
-- Bevorzuge direkte Bewerbungsseiten.
-- Seriöse Jobplattformen sind ebenfalls erlaubt.
-- Wenn eine Stelle offensichtlich geschlossen oder abgelaufen ist, gib sie nicht zurück.
-- Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
-- Suche mehrere Richtungen, die zum Career-Profil passen.
-- Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
-- Wenn Berlin als Standortpräferenz vorhanden ist, suche zuerst in Berlin.
-- Danach können passende europäische Städte berücksichtigt werden.
-- Verwende das aktuelle Datum.
-- Aktualität ist wichtig.
-
-BEREITS GEFUNDENE STELLEN
-Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
-Vergleiche insbesondere URL, Unternehmen und Stellentitel.
-
-QUALITÄT
-Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
-`;
+const schema = {
+  type: "object", additionalProperties: false,
+  properties: {
+    checked_at: { type: "string" },
+    jobs: { type: "array", items: {
+      type: "object", additionalProperties: false,
+      properties: {
+        title: { type: "string" }, company: { type: "string" }, location: { type: "string" },
+        type: { type: "string" }, url: { type: "string" }, description: { type: "string" },
+        why_fit: { type: "string" }, source: { type: "string" }
+      },
+      required: ["title", "company", "location", "type", "url", "description", "why_fit", "source"]
+    }}
+  },
+  required: ["checked_at", "jobs"]
+};
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (!process.env.OPENAI_API_KEY) return res.status(503).json({ error: "Die Live-Suche ist serverseitig noch nicht konfiguriert." });
+
+  const profile = compactProfile(req.body?.profile);
+  if (!Object.keys(profile).length) return res.status(400).json({ error: "Für die Suche wird zuerst eine Career Map benötigt." });
+  const exclude = (Array.isArray(req.body?.exclude) ? req.body.exclude : [])
+    .map(normalizeJobUrl).filter(Boolean).slice(0, 150);
 
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY fehlt");
-    }
-
-    const profile = req.body?.profile || {};
-
-    const exclude = Array.isArray(req.body?.exclude)
-      ? req.body.exclude.filter(Boolean).slice(0, 100)
-      : [];
-
-    const today = new Date().toISOString().slice(0, 10);
-
     const response = await client.responses.create({
-      model: "gpt-5.6-sol",
-
-      reasoning: {
-        effort: "medium"
-      },
-
+      model: MODEL,
       background: true,
       store: true,
-
-      tools: [
-        {
-          type: "web_search",
-          search_context_size: "medium",
-          user_location: {
-            type: "approximate",
-            country: "AT",
-            city: "Vienna",
-            timezone: "Europe/Vienna"
-          }
-        }
-      ],
-
+      reasoning: { effort: "medium" },
+      tools: [{
+        type: "web_search",
+        external_web_access: true,
+        search_context_size: "high",
+        user_location: { type: "approximate", country: "DE", city: "Berlin", timezone: "Europe/Berlin" }
+      }],
       tool_choice: "required",
-
-      text: {
-        format: {
-          type: "json_schema",
-          name: "job_search_result",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              checked_at: {
-                type: "string"
-              },
-              jobs: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    title: {
-                      type: "string"
-                    },
-                    company: {
-                      type: "string"
-                    },
-                    location: {
-                      type: "string"
-                    },
-                    type: {
-                      type: "string"
-                    },
-                    url: {
-                      type: "string"
-                    },
-                    description: {
-                      type: "string"
-                    },
-                    why_fit: {
-                      type: "string"
-                    },
-                    source: {
-                      type: "string"
-                    }
-                  },
-                  required: [
-                    "title",
-                    "company",
-                    "location",
-                    "type",
-                    "url",
-                    "description",
-                    "why_fit",
-                    "source"
-                  ]
-                }
-              }
-            },
-            required: [
-              "checked_at",
-              "jobs"
-            ]
-          }
-        }
-      },
-
+      text: { format: { type: "json_schema", name: "verified_job_search", strict: true, schema } },
       input: [
-        {
-          role: "system",
-          content: system
-        },
-        {
-          role: "user",
-          content:
-            "HEUTIGES DATUM:\n" +
-            today +
-            "\n\nCAREER-PROFIL:\n" +
-            JSON.stringify(profile) +
-            "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
-            JSON.stringify(exclude) +
-            "\n\nSuche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
-        }
+        { role: "system", content: instructions },
+        { role: "user", content: `Datum: ${new Date().toISOString().slice(0, 10)}\n\nCAREER MAP:\n${JSON.stringify(profile).slice(0, 30000)}\n\nAUSGESCHLOSSENE URLS:\n${JSON.stringify(exclude)}\n\nFinde bis zu 8 weitere verifizierte Stellen.` }
       ],
-
-      max_output_tokens: 7000
+      max_output_tokens: 6000
     });
-
-    return res.status(202).json({
-      jobId: response.id,
-      status: response.status || "queued"
-    });
-
+    return res.status(202).json({ searchId: response.id, status: response.status || "queued" });
   } catch (error) {
-    console.error("JOBS START ERROR:", error);
-
-    return res.status(500).json({
-      error:
-        error.message ||
-        "Die Live-Stellensuche konnte nicht gestartet werden."
-    });
+    console.error("JOB SEARCH START ERROR", error);
+    return res.status(502).json({ error: "Die Live-Stellensuche konnte nicht gestartet werden." });
   }
 }
