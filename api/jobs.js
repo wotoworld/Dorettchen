@@ -29,20 +29,25 @@ WICHTIG:
 - Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
 - Suche mehrere Richtungen, die zum Career-Profil passen.
 - Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
-- Priorisiere Berlin mit dem Ziel von mindestens 7 Treffern. Wenn pragmatisch nur 6 gute Berliner Treffer auffindbar sind, suche nicht lange weiter, sondern fülle mit passenden europäischen Städten auf (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp).
+- Priorisiere Berlin, fülle aber zügig mit passenden europäischen Städten auf (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp), wenn dort nicht genug hochwertige Treffer verfügbar sind.
 - Verwende das aktuelle Datum.
 - Ein belastbares Veröffentlichungs-/Aktualisierungsdatum darf höchstens 30 Tage zurückliegen. Erfinde kein Datum. Fehlt es, muss eine aktive Bewerbungsfunktion eindeutig sichtbar sein.
 - Liefere 3–5 informative Sätze zu konkreten Aufgaben, Team/Projekt und Branche sowie einen spezifischen Profilbezug, ausschließlich aus vorhandenen Profildaten.
 
 BEREITS GEFUNDENE STELLEN
-Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
-Vergleiche insbesondere URL, Unternehmen und Stellentitel.
+Die Ausschlussliste beschreibt ausschließlich konkrete Stellenidentitäten. Schließe primär dieselbe normalisierte URL aus, sekundär exakt dieselbe Kombination aus Unternehmen, Titel und Standort. Unternehmen, Domain, Stadt, Jobfamilie oder Career Direction bleiben ausdrücklich durchsuchbar. Eine andere Stelle beim selben Unternehmen ist erlaubt.
 
-ERGEBNISZIEL
-- Liefere 12–15 hochwertige konkrete Stellen in diesem einen Suchlauf und höre dann sofort auf.
-- Die Zahl 12 ist ein Ziel, keine harte Mindestbedingung: Sind nach vernünftiger Suche nur 10 oder 11 gute Treffer auffindbar, gib sie sofort zurück.
-- Qualität geht vor Anzahl. Starte keine neue Suchrunde, um eine Zielzahl zu erzwingen.
 `;
+
+const initialDirective = `
+INITIALSUCHE – ERGEBNISZIEL
+Liefere 12–15 hochwertige konkrete Stellen in diesem einen Suchlauf und höre dann sofort auf. Priorisiere Berlin mit dem Ziel von mindestens 7 Treffern. Die Zahl 12 ist keine harte Mindestbedingung: Sind nach vernünftiger Suche nur 10 oder 11 gute Treffer auffindbar, gib sie sofort zurück. Qualität geht vor Anzahl.`;
+
+const appendDirective = round => round === 2 ? `
+APPEND SEARCH – ROUND 2 (EXPANDED SEARCH)
+Finde neue Stellen, um insgesamt mindestens 6 neue verifizierbare Treffer dieses Klicks zu erreichen. Suche breiter: zusätzliche passende Titel und Synonyme, angrenzende Career Directions, weitere europäische Städte, Unternehmen und seriöse Jobquellen. Berlin bleibt erste Priorität, aber fülle zügig europaweit auf. Prüfe keine ausgeschlossene konkrete URL erneut. Gib alle belastbaren Treffer sofort zurück; Qualität geht vor Zielzahl.` : `
+APPEND SEARCH – ROUND 1 (PRIMARY SEARCH)
+Finde mindestens 6 NEUE verifizierbare Stellen. Die Ausschlussliste zählt nicht zum Ziel. Suche mit Career-Map-Fit, Berlin zuerst und danach passenden europäischen Städten unter allen bestehenden Qualitätsregeln. Höre bei mindestens 6 guten Kandidaten sofort auf. Eine andere Stelle eines bereits vertretenen Unternehmens ist ausdrücklich erlaubt.`;
 
 export default async function handler(req, res) {
   const flowId = req.body?.diagnosticFlowId || req.headers["x-diagnostic-flow-id"] || "missing";
@@ -81,9 +86,12 @@ export default async function handler(req, res) {
 
     const searchProfile = buildSearchProfile(profile);
     const exclude = compactExclusions(req.body?.exclude);
+    const append = req.body?.append === true;
+    const searchRound = append && Number(req.body?.searchRound) === 2 ? 2 : 1;
 
     const today = new Date().toISOString().slice(0, 10);
-    log("openai_create_started", { searchMode: "single_focused_run" });
+    const searchMode = append ? `append_round_${searchRound}` : "initial_search";
+    log("openai_create_started", { searchMode, searchRound, existingJobsCount: Math.max(0, Number(req.body?.existingJobsCount) || 0), excludeCount: exclude.length });
 
     const requestId = String(req.body?.searchRequestId || randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 200);
     const response = await withRateLimitRetry(() => client.responses.create({
@@ -95,7 +103,7 @@ export default async function handler(req, res) {
 
       background: true,
       store: true,
-      metadata: { search_mode: "single_focused_run" },
+      metadata: { search_mode: searchMode, search_round: String(searchRound) },
 
       tools: [
         {
@@ -187,7 +195,7 @@ export default async function handler(req, res) {
       input: [
         {
           role: "system",
-          content: system
+          content: system + (append ? appendDirective(searchRound) : initialDirective)
         },
         {
           role: "user",
@@ -198,7 +206,9 @@ export default async function handler(req, res) {
             JSON.stringify(searchProfile) +
             "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
             JSON.stringify(exclude) +
-            "\n\nSuche jetzt in EINEM fokussierten Live-Websearch-Run nach 12–15 passenden aktuellen Stellen. Priorisiere mindestens 7 Berliner Treffer und fülle pragmatisch mit anderen europäischen Städten auf. Gib keine ausgeschlossenen URLs erneut aus."
+            (append
+              ? `\n\nDies ist Append-Runde ${searchRound}. Liefere ausschließlich neue konkrete Stellen gemäß der Rundenanweisung; Ziel sind mindestens 6 neue Stellen über den gesamten Klick.`
+              : "\n\nSuche jetzt in EINEM fokussierten Live-Websearch-Run nach 12–15 passenden aktuellen Stellen. Priorisiere mindestens 7 Berliner Treffer und fülle pragmatisch mit anderen europäischen Städten auf. Gib keine ausgeschlossenen URLs erneut aus.")
         }
       ],
 
@@ -221,7 +231,8 @@ export default async function handler(req, res) {
       httpStatus: 202,
       jobId: response.id,
       status: response.status || "queued",
-      searchMode: "single_focused_run"
+      searchMode,
+      searchRound
     });
     return res.status(202).json({
       jobId: response.id,

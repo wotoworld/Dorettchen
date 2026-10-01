@@ -5,10 +5,19 @@ import "../job-flow.js";
 
 const job = (id, overrides = {}) => ({ title: `Role ${id}`, company: `Company ${id}`, location: "Berlin", url: `https://example.com/jobs/${id}`, ...overrides });
 
-test("append cases A and B retain existing jobs and accept partial batches", () => {
-  const existing = [1, 2, 3, 4].map(job);
-  assert.equal(JobFlow.appendJobs(existing, Array.from({ length: 12 }, (_, i) => job(i + 5))).jobs.length, 16);
-  assert.equal(JobFlow.appendJobs(existing, Array.from({ length: 8 }, (_, i) => job(i + 5))).jobs.length, 12);
+test("case A: seven unique round-one jobs append without needing round two", () => {
+  const existing = Array.from({ length: 20 }, (_, i) => job(i + 1));
+  const result = JobFlow.combineAppendRounds(existing, Array.from({ length: 7 }, (_, i) => job(i + 21)));
+  assert.equal(result.added, 7);
+  assert.equal(result.jobs.length, 27);
+});
+
+test("case B: four plus five with two duplicates append seven unique jobs", () => {
+  const existing = Array.from({ length: 20 }, (_, i) => job(i + 1));
+  const round1 = [21, 22, 23, 24].map(job);
+  const round2 = [23, 24, 25, 26, 27].map(job);
+  const result = JobFlow.combineAppendRounds(existing, round1, round2);
+  assert.equal(result.added, 7);
 });
 
 test("append case C accepts six jobs from a later round", () => {
@@ -17,7 +26,14 @@ test("append case C accepts six jobs from a later round", () => {
   assert.equal(result.jobs.length, 10);
 });
 
-test("append case D retains all existing jobs when every round is empty", () => {
+test("case D: partial results from both rounds are never discarded below target", () => {
+  const existing = Array.from({ length: 20 }, (_, i) => job(i + 1));
+  const result = JobFlow.combineAppendRounds(existing, [job(21), job(22)], [job(23)]);
+  assert.equal(result.added, 3);
+  assert.equal(result.jobs.length, 23);
+});
+
+test("case E: both empty rounds retain all existing jobs", () => {
   const existing = [1, 2, 3, 4].map(job);
   const result = JobFlow.appendJobs(existing, []);
   assert.equal(result.added, 0);
@@ -54,7 +70,7 @@ test("unversioned legacy search ids are stale and the current version is persist
   assert.equal(legacy.jobsJobId, null);
 
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(source, /JOBS_SEARCH_VERSION=2/);
+  assert.match(source, /JOBS_SEARCH_VERSION=3/);
   assert.match(source, /s\.jobsJobId=data\.jobId;s\.jobsSearchVersion=JOBS_SEARCH_VERSION;save\(\)/);
   assert.doesNotMatch(source, /cancel.*jobsJobId|jobsJobId.*cancel/i);
 });
@@ -74,11 +90,12 @@ test("reload resumes a persisted job while a completed run is cleared before a n
   assert.match(source, /s\.jobsFlowId=.*randomUUID/);
 });
 
-test("each click starts one search and completion never launches another round", async () => {
+test("append completion starts at most one expanded second round", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /startNextJobsRound|continueJobsSearch|MAX_JOB_SEARCH_ROUNDS/);
-  assert.match(source, /pollingResult\.outcome==='complete'\)return finishJobsSuccess/);
-  assert.match(source, /const exclude=\[\.\.\.\(s\.jobs\|\|\[\]\),\.\.\.savedJobs\]/);
+  assert.match(source, /if\(round===1&&pending\.length<6\)/);
+  assert.match(source, /s\.jobsRound=2/);
+  assert.doesNotMatch(source, /jobsRound=3|MAX_JOB_SEARCH_ROUNDS/);
+  assert.match(source, /\.\.\.savedJobs,\.\.\.pending/);
 });
 
 test("a background job still running beyond the polling window is preserved for a later retry", async () => {

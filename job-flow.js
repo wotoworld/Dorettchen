@@ -37,6 +37,10 @@
     return { jobs: combined, added: combined.length - before.length, duplicatesRemoved: before.length + (incoming?.length || 0) - combined.length };
   }
 
+  function combineAppendRounds(existing, round1, round2 = []) {
+    return appendJobs(existing, [...(Array.isArray(round1) ? round1 : []), ...(Array.isArray(round2) ? round2 : [])]);
+  }
+
   function invalidateStaleSearch(state, currentVersion) {
     if (!state?.jobsJobId || state.jobsSearchVersion === currentVersion) return state;
     return {
@@ -71,5 +75,5 @@
     return { outcome: "waiting", pollCount: maxPolls, lastStatus };
   }
 
-  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, invalidateStaleSearch, pollBackgroundJob });
+  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, combineAppendRounds, invalidateStaleSearch, pollBackgroundJob });
 })(globalThis);
