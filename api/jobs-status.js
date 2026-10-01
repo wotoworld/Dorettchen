@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           JSON.stringify(response.output)
         );
 
-        return res.status(500).json({
+        return res.status(200).json({
           status: "error",
           error:
             "Die Stellensuche wurde abgeschlossen, hat aber kein Ergebnis geliefert."
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error("JOBS JSON PARSE ERROR:", text);
 
-        return res.status(500).json({
+        return res.status(200).json({
           status: "error",
           error:
             "Die Stellensuche hat kein gültiges Ergebnis zurückgegeben."
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       }
 
       if (!result || !Array.isArray(result.jobs)) {
-        return res.status(500).json({
+        return res.status(200).json({
           status: "error",
           error:
             "Das Ergebnis der Stellensuche ist ungültig."
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         JSON.stringify(response.error || response.last_error)
       );
 
-      return res.status(500).json({
+      return res.status(200).json({
         status: "error",
         error:
           response.error?.message ||
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
     }
 
     if (response.status === "cancelled") {
-      return res.status(500).json({
+      return res.status(200).json({
         status: "error",
         error:
           "Die Live-Stellensuche wurde abgebrochen."
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     }
 
     if (response.status === "incomplete") {
-      return res.status(500).json({
+      return res.status(200).json({
         status: "error",
         error:
           response.incomplete_details?.reason ||
