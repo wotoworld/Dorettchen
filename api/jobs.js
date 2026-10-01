@@ -39,7 +39,23 @@ Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest
 `;
 
 export default async function handler(req, res) {
+  const flowId = req.body?.diagnosticFlowId || req.headers["x-diagnostic-flow-id"] || "missing";
+  const log = (stage, details = {}) => console.log("[JOBS_DIAGNOSTIC]", JSON.stringify({
+    flowId,
+    endpoint: "/api/jobs",
+    stage,
+    at: new Date().toISOString(),
+    ...details
+  }));
+
+  log("request_received", {
+    method: req.method,
+    hasProfile: Boolean(req.body?.profile),
+    excludeCount: Array.isArray(req.body?.exclude) ? req.body.exclude.length : 0
+  });
+
   if (req.method !== "POST") {
+    log("response_sent", { httpStatus: 405 });
     return res.status(405).json({
       error: "Method not allowed"
     });
@@ -57,6 +73,8 @@ export default async function handler(req, res) {
       : [];
 
     const today = new Date().toISOString().slice(0, 10);
+
+    log("openai_create_started");
 
     const response = await client.responses.create({
       model: "gpt-5.6-sol",
@@ -168,13 +186,37 @@ export default async function handler(req, res) {
       max_output_tokens: 7000
     });
 
+    log("openai_create_succeeded", {
+      responseId: response.id,
+      responseStatus: response.status,
+      error: response.error || null,
+      incompleteDetails: response.incomplete_details || null
+    });
+
+    log("response_sent", {
+      httpStatus: 202,
+      jobId: response.id,
+      status: response.status || "queued"
+    });
     return res.status(202).json({
       jobId: response.id,
       status: response.status || "queued"
     });
 
   } catch (error) {
-    console.error("JOBS START ERROR:", error);
+    console.error("[JOBS_DIAGNOSTIC]", JSON.stringify({
+      flowId,
+      endpoint: "/api/jobs",
+      stage: "error",
+      at: new Date().toISOString(),
+      error: {
+        name: error?.name,
+        message: error?.message,
+        status: error?.status,
+        code: error?.code,
+        requestId: error?.request_id
+      }
+    }));
 
     return res.status(500).json({
       error:

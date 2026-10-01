@@ -752,6 +752,14 @@ async function loadJobs(append=false){
   save();
   render();
 
+  const diagnosticFlowId=(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const diagnosticLog=(stage,details={})=>console.info('[JOBS_DIAGNOSTIC]',{
+    flowId:diagnosticFlowId,
+    stage,
+    at:new Date().toISOString(),
+    ...details
+  });
+
   try{
     const existing=Array.isArray(s.jobs)?s.jobs:[];
     const exclude=existing.map(j=>j.url).filter(Boolean);
@@ -761,15 +769,20 @@ async function loadJobs(append=false){
 
     for(let attempt=0;attempt<3;attempt++){
       try{
+        diagnosticLog('jobs_request_started',{attempt:attempt+1});
         const r=await fetch('/api/jobs',{
           method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({profile:s.profile,exclude})
+          headers:{'Content-Type':'application/json','X-Diagnostic-Flow-Id':diagnosticFlowId},
+          body:JSON.stringify({profile:s.profile,exclude,diagnosticFlowId})
         });
-        if(!r.ok)throw Error(await r.text()||`HTTP ${r.status}`);
-        startResponse=await r.json();
+        const responseText=await r.text();
+        diagnosticLog('jobs_response_received',{httpStatus:r.status,ok:r.ok,body:responseText});
+        if(!r.ok)throw Error(responseText||`HTTP ${r.status}`);
+        startResponse=JSON.parse(responseText);
+        diagnosticLog('jobs_response_parsed',{jobId:startResponse.jobId||null,status:startResponse.status||null});
         break;
       }catch(e){
+        diagnosticLog('jobs_request_failed',{attempt:attempt+1,error:e.message});
         lastError=e.message||'Start der Stellensuche fehlgeschlagen.';
         if(attempt<2)await new Promise(resolve=>setTimeout(resolve,1500));
       }
@@ -780,17 +793,23 @@ async function loadJobs(append=false){
     let result=null;
 
     if(startResponse.jobId){
+      diagnosticLog('polling_started',{jobId:startResponse.jobId});
       for(let attempt=0;attempt<300;attempt++){
         await new Promise(resolve=>setTimeout(resolve,2000));
 
         let statusResponse=null;
         for(let retry=0;retry<3;retry++){
           try{
-            const r=await fetch('/api/jobs-status?jobId='+encodeURIComponent(startResponse.jobId),{cache:'no-store'});
-            if(!r.ok)throw Error(await r.text()||`HTTP ${r.status}`);
-            statusResponse=await r.json();
+            const statusUrl='/api/jobs-status?jobId='+encodeURIComponent(startResponse.jobId)+'&diagnosticFlowId='+encodeURIComponent(diagnosticFlowId);
+            diagnosticLog('status_request_started',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1});
+            const r=await fetch(statusUrl,{cache:'no-store',headers:{'X-Diagnostic-Flow-Id':diagnosticFlowId}});
+            const responseText=await r.text();
+            diagnosticLog('status_response_received',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1,httpStatus:r.status,ok:r.ok,body:responseText});
+            if(!r.ok)throw Error(responseText||`HTTP ${r.status}`);
+            statusResponse=JSON.parse(responseText);
             break;
           }catch(e){
+            diagnosticLog('status_request_failed',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1,error:e.message});
             if(retry<2)await new Promise(resolve=>setTimeout(resolve,1000));
           }
         }
@@ -798,6 +817,7 @@ async function loadJobs(append=false){
         if(!statusResponse)continue;
         if(statusResponse.status==='complete'){
           result=statusResponse.result;
+          diagnosticLog('completed_result_received',{jobId:startResponse.jobId,jobCount:Array.isArray(result?.jobs)?result.jobs.length:null});
           break;
         }
         if(statusResponse.status==='error'){
@@ -821,9 +841,11 @@ async function loadJobs(append=false){
     });
 
     s.jobs=append?[...existing,...fresh]:fresh;
+    diagnosticLog('jobs_render_state_ready',{incomingCount:incoming.length,freshCount:fresh.length,totalCount:s.jobs.length});
     s.jobsLoaded=true;
     if(!s.jobs.length)s.jobsError='Es wurden gerade keine konkreten Ausschreibungen gefunden.';
   }catch(e){
+    diagnosticLog('flow_failed',{error:e.message});
     console.error('JOB SEARCH ERROR:',e);
     s.jobsError=e.message||'Die Stellensuche konnte gerade nicht geladen werden.';
     if(!append)s.jobs=[];
