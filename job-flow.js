@@ -37,6 +37,20 @@
     return { jobs: combined, added: combined.length - before.length, duplicatesRemoved: before.length + (incoming?.length || 0) - combined.length };
   }
 
+  function invalidateStaleSearch(state, currentVersion) {
+    if (!state?.jobsJobId || state.jobsSearchVersion === currentVersion) return state;
+    return {
+      ...state,
+      jobsJobId: null,
+      jobsSearchVersion: null,
+      jobsLoading: false,
+      jobsPollingPaused: false,
+      jobsAppend: false,
+      jobsRequestId: null,
+      jobsFlowId: null
+    };
+  }
+
   async function pollBackgroundJob({ fetchStatus, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), maxPolls = 90, intervalMs = 3000, initialDelayMs = 500, maxConsecutiveFailures = 4 }) {
     let consecutiveFailures = 0;
     let lastStatus = "queued";
@@ -57,5 +71,5 @@
     return { outcome: "waiting", pollCount: maxPolls, lastStatus };
   }
 
-  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, pollBackgroundJob });
+  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, invalidateStaleSearch, pollBackgroundJob });
 })(globalThis);
