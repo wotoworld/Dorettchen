@@ -20,11 +20,19 @@ export default async function handler(req, res) {
 
     if (!jobId) {
       return res.status(400).json({
+        status: "error",
         error: "Missing jobId"
       });
     }
 
     const response = await client.responses.retrieve(jobId);
+
+    console.log("JOBS STATUS:", {
+      id: response.id,
+      status: response.status,
+      error: response.error,
+      incomplete_details: response.incomplete_details
+    });
 
     if (
       response.status === "queued" ||
@@ -36,15 +44,29 @@ export default async function handler(req, res) {
     }
 
     if (response.status === "completed") {
+
+      // Normaler Convenience-Wert der Responses API
+      const text = response.output_text;
+
+      if (!text) {
+        console.error(
+          "JOBS EMPTY OUTPUT:",
+          JSON.stringify(response.output)
+        );
+
+        return res.status(500).json({
+          status: "error",
+          error:
+            "Die Stellensuche wurde abgeschlossen, hat aber kein Ergebnis geliefert."
+        });
+      }
+
       let result;
 
       try {
-        result = JSON.parse(response.output_text || "");
+        result = JSON.parse(text);
       } catch (error) {
-        console.error(
-          "JOBS JSON PARSE ERROR:",
-          response.output_text
-        );
+        console.error("JOBS JSON PARSE ERROR:", text);
 
         return res.status(500).json({
           status: "error",
@@ -53,10 +75,7 @@ export default async function handler(req, res) {
         });
       }
 
-      if (
-        !result ||
-        !Array.isArray(result.jobs)
-      ) {
+      if (!result || !Array.isArray(result.jobs)) {
         return res.status(500).json({
           status: "error",
           error:
@@ -68,9 +87,10 @@ export default async function handler(req, res) {
         .filter(job =>
           job &&
           typeof job === "object" &&
-          job.title &&
-          job.company &&
-          job.url
+          typeof job.title === "string" &&
+          typeof job.company === "string" &&
+          typeof job.url === "string" &&
+          job.url.startsWith("http")
         )
         .slice(0, 15);
 
@@ -81,6 +101,11 @@ export default async function handler(req, res) {
     }
 
     if (response.status === "failed") {
+      console.error(
+        "JOBS FAILED:",
+        JSON.stringify(response.error || response.last_error)
+      );
+
       return res.status(500).json({
         status: "error",
         error:
