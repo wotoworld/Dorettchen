@@ -3,20 +3,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buildSearchProfile,
-  buildRoundDirective,
   compactExclusions,
   PUBLIC_JOB_ERROR,
   withRateLimitRetry
 } from "../api/job-search-utils.js";
-
-test("round directives exhaust Berlin before switching to a broad European fill", () => {
-  const berlin = buildRoundDirective({ phase: "berlin", round: 1, verifiedCount: 0, berlinCount: 0 });
-  const europe = buildRoundDirective({ phase: "europe", round: 3, verifiedCount: 6, berlinCount: 6 });
-  assert.match(berlin, /BERLIN INTENSIV/);
-  assert.match(berlin, /mehrere unterschiedliche Suchrichtungen/);
-  assert.match(europe, /EUROPA AUFFÜLLEN/);
-  assert.match(europe, /mindestens 12 neue Stellen/);
-});
 
 test("builds a compact matching profile without long Career Map prose", () => {
   const profile = {
@@ -84,13 +74,22 @@ test("rate limit retry stops after five attempts and public error contains no in
   assert.doesNotMatch(JSON.stringify(PUBLIC_JOB_ERROR), /org-secret|TPM|openai/i);
 });
 
-test("live search alone uses Terra High, required web search and a bounded output", async () => {
+test("live search alone uses Terra Medium, required web search and a bounded output", async () => {
   const jobsSource = await readFile(new URL("../api/jobs.js", import.meta.url), "utf8");
   const otherSources = await Promise.all(["analyze.js", "chat.js", "finalize.js"].map(async file => readFile(new URL(`../api/${file}`, import.meta.url), "utf8")));
   assert.match(jobsSource, /model: "gpt-5\.6-terra"/);
-  assert.match(jobsSource, /reasoning:\s*\{\s*effort: "high"/);
+  assert.match(jobsSource, /reasoning:\s*\{\s*effort: "medium"/);
   assert.match(jobsSource, /type: "web_search"/);
   assert.match(jobsSource, /tool_choice: "required"/);
   assert.match(jobsSource, /max_output_tokens: 7000/);
   assert.ok(otherSources.every(source => !source.includes("gpt-5.6-terra")));
+});
+
+test("live search prompt requests one pragmatic 12–15 job run with Berlin priority", async () => {
+  const jobsSource = await readFile(new URL("../api/jobs.js", import.meta.url), "utf8");
+  assert.match(jobsSource, /genau eine fokussierte Recherche/);
+  assert.match(jobsSource, /12–15 hochwertige konkrete Stellen/);
+  assert.match(jobsSource, /mindestens 7 Treffern/);
+  assert.match(jobsSource, /nur 10 oder 11 gute Treffer/);
+  assert.doesNotMatch(jobsSource, /buildRoundDirective|MAX_SEARCH_ROUNDS|searchPhase|searchRound/);
 });
