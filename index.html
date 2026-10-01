@@ -595,6 +595,10 @@ try{
   const x=JSON.parse(localStorage.getItem(STATE_KEY)||'null');
   if(x)s={...s,...x};
 }catch{}
+// A POST interrupted before its job id arrived must never auto-start a second
+// paid search after reload. The user can explicitly retry; persisted job ids
+// are resumed below without creating another OpenAI response.
+if(s.jobsLoading&&!s.jobsJobId)s.jobsLoading=false;
 const updateSavedCount=()=>{const el=document.getElementById('savedJobsCount');if(el)el.textContent=savedJobs.length};
 const save=()=>{try{localStorage.setItem(STATE_KEY,JSON.stringify(s))}catch{}};
 const saveSavedJobs=()=>{try{localStorage.setItem(SAVED_JOBS_KEY,JSON.stringify(savedJobs));updateSavedCount()}catch{}};
@@ -837,12 +841,13 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let jobsPollingActive=false;
 async function loadJobs(append=false){
   if(s.jobsLoading||s.jobsJobId)return;
-  s.jobsLoading=true;s.jobsError='';s.jobsAppend=append;save();render();
+  s.jobsLoading=true;s.jobsError='';s.jobsAppend=append;
+  s.jobsRequestId=(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`);save();render();
   try{
     const exclude=[...(s.jobs||[]),...savedJobs].map(j=>({url:j.url,company:j.company,title:j.title}));
-    const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:s.profile,answers:s.a,deepDive:s.follow,exclude})});
+    const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:s.profile,exclude,searchRequestId:s.jobsRequestId})});
     const data=await r.json();
-    if(!r.ok||!data.jobId)throw Error(data.error||'Die Live-Suche konnte nicht gestartet werden.');
+    if(!r.ok||!data.jobId)throw Error('temporarily_unavailable');
     s.jobsJobId=data.jobId;save();
     await resumeJobsPolling();
   }catch(e){finishJobsError(e.message)}
@@ -857,11 +862,11 @@ async function resumeJobsPolling(){
     try{
       const r=await fetch('/api/jobs-status?jobId='+encodeURIComponent(s.jobsJobId),{cache:'no-store'});
       const data=await r.json();
-      if(!r.ok)throw Error(data.error||`Statusfehler (${r.status})`);
+      if(!r.ok)throw Error('temporarily_unavailable');
       networkFailures=0;
       if(data.status==='queued'||data.status==='in_progress')continue;
       if(data.status==='complete'||data.status==='completed'){jobsPollingActive=false;return finishJobsSuccess(data.result?.jobs||[])}
-      if(['failed','cancelled','incomplete','error'].includes(data.status))throw Error(data.error||'Die Live-Suche wurde nicht abgeschlossen.');
+      if(['failed','cancelled','incomplete','error'].includes(data.status))throw Error('temporarily_unavailable');
     }catch(e){
       if(++networkFailures<4)continue;
       jobsPollingActive=false;return finishJobsError(e.message);
@@ -873,11 +878,11 @@ async function resumeJobsPolling(){
 function finishJobsSuccess(incoming){
   const existing=Array.isArray(s.jobs)?s.jobs:[],seen=new Set(existing.map(jobIdentity));
   const fresh=incoming.filter(j=>j&&j.url&&j.title&&j.company&&!seen.has(jobIdentity(j))&&seen.add(jobIdentity(j)));
-  s.jobs=s.jobsAppend?[...existing,...fresh]:fresh;s.jobsLoaded=true;s.jobsLoading=false;s.jobsJobId=null;s.jobsAppend=false;
+  s.jobs=s.jobsAppend?[...existing,...fresh]:fresh;s.jobsLoaded=true;s.jobsLoading=false;s.jobsJobId=null;s.jobsAppend=false;s.jobsRequestId=null;
   if(!s.jobs.length)s.jobsError='Bitte starte eine neue Live-Suche. Es werden keine statischen oder ungeprüften Ersatztreffer angezeigt.';
   save();render();
 }
-function finishJobsError(message){s.jobsError=message||'Die Stellensuche konnte gerade nicht abgeschlossen werden.';s.jobsLoading=false;s.jobsLoaded=true;s.jobsJobId=null;s.jobsAppend=false;save();render()}
+function finishJobsError(){s.jobsError='Die Live-Suche ist gerade ausgelastet. Bitte versuche es in einem Moment erneut.';s.jobsLoading=false;s.jobsLoaded=true;s.jobsJobId=null;s.jobsAppend=false;s.jobsRequestId=null;save();render()}
 function loadMoreJobs(){return loadJobs(true)}
 
 function chat(){

@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { randomUUID } from "node:crypto";
+import { buildSearchProfile, compactExclusions, PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -21,7 +23,7 @@ WICHTIG:
 - Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
 - Bevorzuge direkte Bewerbungsseiten.
 - Seriöse Jobplattformen sind ebenfalls erlaubt.
-- Öffne jeden Treffer in der Websuche und prüfe die KONKRETE Ausschreibungsseite; ein Suchsnippet allein genügt nie.
+- Sammle Kandidaten effizient und ohne redundante Suchen. Öffne nur vielversprechende Treffer, prüfe dabei die KONKRETE Ausschreibungsseite; ein Suchsnippet allein genügt nie. Verwende bereits gefundene Fakten wieder, statt dieselbe Information erneut zu suchen.
 - Wenn eine Stelle geschlossen, abgelaufen, entfernt oder nicht mehr bewerbbar ist, gib sie nicht zurück.
 - Bevorzuge direkte Unternehmensseiten und ATS wie Greenhouse, Lever, Workday, Personio, JOIN und SmartRecruiters.
 - Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
@@ -60,7 +62,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     log("response_sent", { httpStatus: 405 });
     return res.status(405).json({
-      error: "Method not allowed"
+      status: "error", code: "method_not_allowed", message: "Diese Anfrage wird nicht unterstützt."
     });
   }
 
@@ -71,19 +73,19 @@ export default async function handler(req, res) {
 
     const profile = req.body?.profile;
     if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
-      return res.status(400).json({ error: "Für die Live-Suche wird eine fertige Career Map benötigt." });
+      return res.status(400).json({ status: "error", code: "invalid_profile", message: "Für die Live-Suche wird eine fertige Career Map benötigt." });
     }
 
-    const exclude = Array.isArray(req.body?.exclude)
-      ? req.body.exclude.filter(Boolean).slice(0, 100)
-      : [];
+    const searchProfile = buildSearchProfile(profile);
+    const exclude = compactExclusions(req.body?.exclude);
 
     const today = new Date().toISOString().slice(0, 10);
 
     log("openai_create_started");
 
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
+    const requestId = String(req.body?.searchRequestId || randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 200);
+    const response = await withRateLimitRetry(() => client.responses.create({
+      model: "gpt-5.6-terra",
 
       reasoning: {
         effort: "high"
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
       tools: [
         {
           type: "web_search",
-          search_context_size: "high",
+          search_context_size: "medium",
           user_location: {
             type: "approximate",
             country: "DE",
@@ -190,14 +192,21 @@ export default async function handler(req, res) {
             "HEUTIGES DATUM:\n" +
             today +
             "\n\nCAREER-PROFIL:\n" +
-            JSON.stringify(profile) +
+            JSON.stringify(searchProfile) +
             "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
             JSON.stringify(exclude) +
             "\n\nSuche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
         }
       ],
 
+      // Thirty candidates with individual descriptions need this headroom;
+      // lowering it further risks truncated structured JSON.
       max_output_tokens: 7000
+    }, {
+      headers: { "Idempotency-Key": `jobs-${requestId}` }
+    }), {
+      attempts: 5,
+      onRetry: ({ attempt, delay }) => log("openai_rate_limit_retry", { attempt, delayMs: delay })
     });
 
     log("openai_create_succeeded", {
@@ -232,10 +241,6 @@ export default async function handler(req, res) {
       }
     }));
 
-    return res.status(500).json({
-      error:
-        error.message ||
-        "Die Live-Stellensuche konnte nicht gestartet werden."
-    });
+    return res.status(503).json(PUBLIC_JOB_ERROR);
   }
 }
