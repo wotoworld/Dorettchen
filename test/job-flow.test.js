@@ -36,6 +36,29 @@ test("deduplication uses URL or company-title-location, never company alone", ()
   assert.equal(result.jobs[1].title, "Marketing Intern");
 });
 
+test("stale persisted search ids are discarded without deleting displayed jobs", () => {
+  const jobs = [job(1)];
+  const stale = JobFlow.invalidateStaleSearch({ jobs, jobsJobId: "old-job", jobsSearchVersion: 1, jobsLoading: true, jobsAppend: true }, 2);
+  assert.equal(stale.jobsJobId, null);
+  assert.equal(stale.jobsSearchVersion, null);
+  assert.equal(stale.jobsLoading, false);
+  assert.equal(stale.jobsAppend, false);
+  assert.strictEqual(stale.jobs, jobs);
+
+  const current = { jobs, jobsJobId: "current-job", jobsSearchVersion: 2, jobsLoading: true };
+  assert.strictEqual(JobFlow.invalidateStaleSearch(current, 2), current);
+});
+
+test("unversioned legacy search ids are stale and the current version is persisted with new ids", async () => {
+  const legacy = JobFlow.invalidateStaleSearch({ jobsJobId: "legacy-job", jobsLoading: true }, 2);
+  assert.equal(legacy.jobsJobId, null);
+
+  const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(source, /JOBS_SEARCH_VERSION=2/);
+  assert.match(source, /s\.jobsJobId=data\.jobId;s\.jobsSearchVersion=JOBS_SEARCH_VERSION;save\(\)/);
+  assert.doesNotMatch(source, /cancel.*jobsJobId|jobsJobId.*cancel/i);
+});
+
 test("append UI exposes no-results and friendly error retry states", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(source, /Diesmal konnten keine weiteren verifizierten Stellen gefunden werden\./);
@@ -47,7 +70,7 @@ test("append UI exposes no-results and friendly error retry states", async () =>
 test("reload resumes a persisted job while a completed run is cleared before a new click", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(source, /if\(s\.jobsJobId&&!s\.jobsPollingPaused&&!jobsPollingActive\)setTimeout\(\(\)=>resumeJobsPolling\(\),80\)/);
-  assert.match(source, /s\.jobs=merged\.jobs;s\.jobsLoaded=true;s\.jobsLoading=false;s\.jobsJobId=null;s\.jobsPollingPaused=false/);
+  assert.match(source, /s\.jobs=merged\.jobs;s\.jobsLoaded=true;s\.jobsLoading=false;s\.jobsJobId=null;s\.jobsSearchVersion=null;s\.jobsPollingPaused=false/);
   assert.match(source, /s\.jobsFlowId=.*randomUUID/);
 });
 
