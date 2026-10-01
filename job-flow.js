@@ -37,5 +37,25 @@
     return { jobs: combined, added: combined.length - before.length, duplicatesRemoved: before.length + (incoming?.length || 0) - combined.length };
   }
 
-  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs });
+  async function pollBackgroundJob({ fetchStatus, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), maxPolls = 90, intervalMs = 3000, initialDelayMs = 500, maxConsecutiveFailures = 4 }) {
+    let consecutiveFailures = 0;
+    let lastStatus = "queued";
+    for (let pollCount = 1; pollCount <= maxPolls; pollCount += 1) {
+      await wait(pollCount === 1 ? initialDelayMs : intervalMs);
+      try {
+        const data = await fetchStatus();
+        lastStatus = data?.status || "unknown";
+        consecutiveFailures = 0;
+        if (lastStatus === "queued" || lastStatus === "in_progress") continue;
+        if (lastStatus === "complete" || lastStatus === "completed") return { outcome: "complete", result: data.result || {}, pollCount, lastStatus };
+        if (["failed", "cancelled", "incomplete", "error"].includes(lastStatus)) return { outcome: "terminal_error", pollCount, lastStatus };
+        throw new Error("unknown_status");
+      } catch (error) {
+        if (++consecutiveFailures >= maxConsecutiveFailures) return { outcome: "interrupted", pollCount, lastStatus, error };
+      }
+    }
+    return { outcome: "waiting", pollCount: maxPolls, lastStatus };
+  }
+
+  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, pollBackgroundJob });
 })(globalThis);
