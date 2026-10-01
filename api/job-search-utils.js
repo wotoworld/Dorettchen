@@ -4,6 +4,18 @@ export const PUBLIC_JOB_ERROR = Object.freeze({
   message: "Die Live-Suche ist gerade ausgelastet. Bitte versuche es in einem Moment erneut."
 });
 
+export const JOB_SEARCH_TARGET = 12;
+export const BERLIN_SEARCH_TARGET = 7;
+export const MAX_SEARCH_ROUNDS = 5;
+
+export function buildRoundDirective({ phase, round, verifiedCount, berlinCount }) {
+  const progress = `Suchrunde ${round} von maximal ${MAX_SEARCH_ROUNDS}. Bisher nach technischer Verifikation: ${verifiedCount} neue Stellen insgesamt, davon ${berlinCount} in Berlin.`;
+  if (phase === "berlin") {
+    return `${progress}\nPHASE 1 – BERLIN INTENSIV: Suche in dieser Runde ausschließlich konkrete Stellen in Berlin. Leite mehrere unterschiedliche Suchrichtungen und Formulierungen aus den Career Directions ab. Durchsuche nicht nur eine allgemeine Query, sondern passende Rollenfamilien, angrenzende Rollen, Arbeitgeber-Karriereseiten und ATS. Beende die Recherche nicht nach wenigen Treffern. Ziel dieser Berlin-Runde sind möglichst viele hochwertige Kandidaten für mindestens ${BERLIN_SEARCH_TARGET} verifizierte Berliner Stellen.`;
+  }
+  return `${progress}\nPHASE 2 – EUROPA AUFFÜLLEN: Die intensive Berlin-Suche ist abgeschlossen oder das Berlin-Ziel wurde erreicht. Suche jetzt breit in mehreren passenden europäischen Städten außerhalb Berlins. Variiere Städte, Career Directions, Rollenbezeichnungen, Arbeitgeber-Karriereseiten und ATS. Bevorzuge eine gute Stadtverteilung und sammle genügend Kandidaten, damit nach der technischen Verifikation mindestens ${JOB_SEARCH_TARGET} neue Stellen insgesamt verbleiben.`;
+}
+
 const text = (value, limit = 240) => {
   if (typeof value !== "string") return undefined;
   const compact = value.replace(/\s+/g, " ").trim();
@@ -56,7 +68,9 @@ export function buildSearchProfile(profile) {
 export function compactExclusions(exclude) {
   if (!Array.isArray(exclude)) return [];
   const seen = new Set();
-  return exclude.slice(0, 150).map(item => {
+  // Five bounded rounds can inspect up to 150 candidates in addition to jobs
+  // already displayed or saved by the user.
+  return exclude.slice(0, 250).map(item => {
     if (!item || typeof item !== "object") return null;
     const compact = {
       url: text(item.url, 500),
