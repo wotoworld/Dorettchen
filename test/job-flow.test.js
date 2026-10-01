@@ -47,8 +47,15 @@ test("append UI exposes no-results and friendly error retry states", async () =>
 test("reload resumes a persisted job while a completed run is cleared before a new click", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(source, /if\(s\.jobsJobId&&!s\.jobsPollingPaused&&!jobsPollingActive\)setTimeout\(\(\)=>resumeJobsPolling\(\),80\)/);
-  assert.match(source, /s\.jobsJobId=null;s\.jobsPollingPaused=false;s\.jobsRequestId=null;save\(\)/);
+  assert.match(source, /s\.jobs=merged\.jobs;s\.jobsLoaded=true;s\.jobsLoading=false;s\.jobsJobId=null;s\.jobsPollingPaused=false/);
   assert.match(source, /s\.jobsFlowId=.*randomUUID/);
+});
+
+test("each click starts one search and completion never launches another round", async () => {
+  const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /startNextJobsRound|continueJobsSearch|MAX_JOB_SEARCH_ROUNDS/);
+  assert.match(source, /pollingResult\.outcome==='complete'\)return finishJobsSuccess/);
+  assert.match(source, /const exclude=\[\.\.\.\(s\.jobs\|\|\[\]\),\.\.\.savedJobs\]/);
 });
 
 test("a background job still running beyond the polling window is preserved for a later retry", async () => {
