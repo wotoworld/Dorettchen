@@ -8,13 +8,11 @@ const system = `
 Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
 
 DEINE AUFGABE
-
 Finde konkrete, AKTUELL auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
 
 Die Suche muss auf einer echten Live-Websuche basieren.
 
 WICHTIG:
-
 - Nutze zwingend die Websuche.
 - Suche wirklich im aktuellen Internet.
 - Verwende keine erfundenen Stellen.
@@ -25,32 +23,19 @@ WICHTIG:
 - Seriöse Jobplattformen sind ebenfalls erlaubt.
 - Wenn eine Stelle offensichtlich geschlossen oder abgelaufen ist, gib sie nicht zurück.
 - Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
-- Suche nicht nur nach einem einzigen Beruf.
 - Suche mehrere Richtungen, die zum Career-Profil passen.
-- Berücksichtige insbesondere die im Profil erkennbaren Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
+- Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
 - Wenn Berlin als Standortpräferenz vorhanden ist, suche zuerst in Berlin.
 - Danach können passende europäische Städte berücksichtigt werden.
-- Bevorzuge Stellen, die für das Profil tatsächlich nachvollziehbar relevant sind.
 - Verwende das aktuelle Datum.
 - Aktualität ist wichtig.
 
 BEREITS GEFUNDENE STELLEN
-
-Wenn bereits gefundene Stellen übergeben werden, dürfen diese NICHT erneut zurückgegeben werden.
-
-Vergleiche insbesondere:
-- URL
-- Unternehmen
-- Stellentitel
-
-Suche stattdessen andere konkrete Ausschreibungen.
+Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
+Vergleiche insbesondere URL, Unternehmen und Stellentitel.
 
 AUSGABE
-
-Gib ausschließlich valides JSON zurück.
-
-Struktur:
-
+Gib ausschließlich valides JSON zurück:
 {
   "checked_at": "YYYY-MM-DD",
   "jobs": [
@@ -66,34 +51,6 @@ Struktur:
     }
   ]
 }
-
-REGELN FÜR DIE EINZELNEN FELDER
-
-title:
-Der tatsächliche Titel der Ausschreibung.
-
-company:
-Das tatsächliche Unternehmen.
-
-location:
-Der tatsächliche Standort.
-
-type:
-Zum Beispiel "Praktikum", "Internship", "Werkstudent", "Junior" etc.
-
-url:
-Direkter Link zur konkreten Ausschreibung oder Bewerbungsseite.
-
-description:
-Kurze sachliche Zusammenfassung der tatsächlich gefundenen Ausschreibung.
-
-why_fit:
-Kurze, konkrete Erklärung, welche Aspekte des übergebenen Career-Profils mit der Stelle zusammenpassen.
-
-source:
-Name der Website oder Plattform, auf der die Ausschreibung gefunden wurde.
-
-ERFINDUNGEN SIND NICHT ERLAUBT.
 
 Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
 `;
@@ -113,41 +70,11 @@ export default async function handler(req, res) {
     const profile = req.body?.profile || {};
 
     const exclude = Array.isArray(req.body?.exclude)
-      ? req.body.exclude
-          .filter(Boolean)
-          .slice(0, 100)
+      ? req.body.exclude.filter(Boolean).slice(0, 100)
       : [];
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const input = [
-      {
-        role: "system",
-        content: system
-      },
-      {
-        role: "user",
-        content:
-          "HEUTIGES DATUM:\n" +
-          today +
-          "\n\n" +
-          "CAREER-PROFIL:\n" +
-          JSON.stringify(profile) +
-          "\n\n" +
-          "BEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
-          JSON.stringify(exclude) +
-          "\n\n" +
-          "Suche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
-      }
-    ];
-
-    /*
-     * Die eigentliche Suche läuft als Background-Response.
-     *
-     * Dadurch bleibt der Browser-Request nicht minutenlang offen.
-     * Das Frontend bekommt sofort eine responseId zurück und kann
-     * anschließend /api/jobs-status abfragen.
-     */
     const response = await client.responses.create({
       model: "gpt-5.6-sol",
 
@@ -162,6 +89,7 @@ export default async function handler(req, res) {
         {
           type: "web_search",
           search_context_size: "medium",
+
           user_location: {
             type: "approximate",
             country: "AT",
@@ -173,7 +101,24 @@ export default async function handler(req, res) {
 
       tool_choice: "required",
 
-      input,
+      input: [
+        {
+          role: "system",
+          content: system
+        },
+
+        {
+          role: "user",
+          content:
+            "HEUTIGES DATUM:\n" +
+            today +
+            "\n\nCAREER-PROFIL:\n" +
+            JSON.stringify(profile) +
+            "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
+            JSON.stringify(exclude) +
+            "\n\nSuche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
+        }
+      ],
 
       max_output_tokens: 7000
     });
@@ -184,6 +129,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
+
     console.error("JOBS START ERROR:", error);
 
     return res.status(500).json({
