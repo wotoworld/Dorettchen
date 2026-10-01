@@ -30,7 +30,7 @@ test("exclude context contains only identity fields and removes duplicates", () 
     { url: "https://example.com/job", company: "Example", title: "Intern", description: "long", why_fit: "long" },
     { url: "https://example.com/job", company: "Example", title: "Intern", source: "secret" }
   ];
-  assert.deepEqual(compactExclusions(input), [{ url: "https://example.com/job", company: "Example", title: "Intern" }]);
+  assert.deepEqual(compactExclusions(input), [{ url: "https://example.com/job", company: "Example", title: "Intern", location: undefined }]);
 });
 
 test("rate limit retry: 429 then success", async () => {
@@ -85,11 +85,14 @@ test("live search alone uses Terra Medium, required web search and a bounded out
   assert.ok(otherSources.every(source => !source.includes("gpt-5.6-terra")));
 });
 
-test("live search prompt requests one pragmatic 12–15 job run with Berlin priority", async () => {
+test("initial search remains 12–15 while append has two bounded rounds targeting six new jobs", async () => {
   const jobsSource = await readFile(new URL("../api/jobs.js", import.meta.url), "utf8");
   assert.match(jobsSource, /genau eine fokussierte Recherche/);
   assert.match(jobsSource, /12–15 hochwertige konkrete Stellen/);
   assert.match(jobsSource, /mindestens 7 Treffern/);
   assert.match(jobsSource, /nur 10 oder 11 gute Treffer/);
-  assert.doesNotMatch(jobsSource, /buildRoundDirective|MAX_SEARCH_ROUNDS|searchPhase|searchRound/);
+  assert.match(jobsSource, /APPEND SEARCH – ROUND 1/);
+  assert.match(jobsSource, /APPEND SEARCH – ROUND 2/);
+  assert.match(jobsSource, /mindestens 6 NEUE/);
+  assert.match(jobsSource, /searchRound\) === 2/);
 });

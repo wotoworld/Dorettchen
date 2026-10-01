@@ -2,9 +2,11 @@ const ALLOWED_METRICS = [
   "existingJobsCount", "excludeCount", "searchRound", "candidatesFound",
   "candidatesVerified", "candidatesRejected", "duplicatesRemoved", "newJobsReturned",
   "existingJobsBeforeAppend", "newJobsAppended", "totalJobsAfterAppend", "pollCount"
+  , "round1Candidates", "round1Verified", "round1NewAfterDedup",
+  "round2Candidates", "round2Verified", "round2NewAfterDedup", "totalNewJobs"
 ];
 
-const ALLOWED_TEXT = ["openAIStatus", "pollingOutcome"];
+const ALLOWED_TEXT = ["openAIStatus", "pollingOutcome", "round2Started"];
 
 export default function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ status: "error" });

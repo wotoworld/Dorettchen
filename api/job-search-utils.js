@@ -62,9 +62,10 @@ export function compactExclusions(exclude) {
     const compact = {
       url: text(item.url, 500),
       company: text(item.company, 120),
-      title: text(item.title, 160)
+      title: text(item.title, 160),
+      location: text(item.location, 120)
     };
-    const key = `${compact.url || ""}|${compact.company || ""}|${compact.title || ""}`.toLowerCase();
+    const key = `${compact.url || ""}|${compact.company || ""}|${compact.title || ""}|${compact.location || ""}`.toLowerCase();
     if ((!compact.url && !compact.company && !compact.title) || seen.has(key)) return null;
     seen.add(key);
     return compact;

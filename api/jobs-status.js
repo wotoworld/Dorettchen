@@ -9,6 +9,7 @@ const client = new OpenAI({
 export default async function handler(req, res) {
   const flowId = req.query?.diagnosticFlowId || req.headers["x-diagnostic-flow-id"] || "missing";
   const jobId = req.query?.jobId;
+  const searchRound = Math.max(1, Math.min(2, Number(req.query?.searchRound) || 1));
   const log = (stage, details = {}) => console.log("[JOBS_DIAGNOSTIC]", JSON.stringify({
     flowId,
     endpoint: "/api/jobs-status",
@@ -118,6 +119,11 @@ export default async function handler(req, res) {
         candidatesVerified: verifiedCandidates.length,
         candidatesRejected: candidates.length - verifiedCandidates.length,
         newJobsReturned: result.jobs.length
+      });
+      log(`round${searchRound}_completed`, {
+        [`round${searchRound}Candidates`]: candidates.length,
+        [`round${searchRound}Verified`]: verifiedCandidates.length,
+        [`round${searchRound}NewAfterDedup`]: result.jobs.length
       });
       result.checked_at = new Date().toISOString();
 
