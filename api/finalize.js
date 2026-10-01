@@ -335,11 +335,17 @@ export default async function handler(req, res) {
       throw new Error("OPENAI_API_KEY fehlt");
     }
 
+    // Final reports regularly need several minutes. Start the Responses job in
+    // the background so this request only has to stay open long enough to
+    // receive the job id. The browser retrieves the finished report through
+    // /api/finalize-status instead of holding one fragile connection open.
     const result = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
       reasoning: {
         effort: "high"
       },
+      background: true,
+      store: true,
       input: [
         {
           role: "system",
@@ -352,9 +358,10 @@ export default async function handler(req, res) {
       ]
     });
 
-    const parsed = JSON.parse(result.output_text);
-
-    return res.status(200).json(parsed);
+    return res.status(202).json({
+      jobId: result.id,
+      status: result.status || "queued"
+    });
 
   } catch (error) {
 
