@@ -3,10 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "test": "node --test"
   },
   "dependencies": {
     "@vercel/functions": "^3.0.0",
     "openai": "latest"
-  }
+  },
+  "type": "module"
 }
