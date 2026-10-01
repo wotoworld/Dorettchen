@@ -30,8 +30,8 @@ test("requires an active application signal when the page has no date", async ()
 });
 
 test("prioritises Berlin while introducing distinct European cities", () => {
-  const jobs = ["Berlin", "Berlin", "Berlin", "Berlin", "Berlin", "Berlin", "Paris", "London", "Milan", "Vienna", "Madrid", "Amsterdam"].map((location, index) => ({ location, fit_score: 100 - index }));
+  const jobs = ["Berlin", "Berlin", "Berlin", "Berlin", "Berlin", "Berlin", "Berlin", "Paris", "London", "Milan", "Vienna", "Madrid", "Amsterdam"].map((location, index) => ({ location, fit_score: 100 - index }));
   const result = rankForLocationMix(jobs, 12);
-  assert.equal(result.filter(item => item.location === "Berlin").length, 6);
-  assert.equal(new Set(result.filter(item => item.location !== "Berlin").map(item => item.location)).size, 6);
+  assert.equal(result.filter(item => item.location === "Berlin").length, 7);
+  assert.equal(new Set(result.filter(item => item.location !== "Berlin").map(item => item.location)).size, 5);
 });

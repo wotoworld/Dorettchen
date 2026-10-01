@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { randomUUID } from "node:crypto";
-import { buildSearchProfile, compactExclusions, PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
+import { buildRoundDirective, buildSearchProfile, compactExclusions, MAX_SEARCH_ROUNDS, PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -30,7 +30,7 @@ WICHTIG:
 - Suche mehrere Richtungen, die zum Career-Profil passen.
 - Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
 - Wenn Berlin als Standortpräferenz vorhanden ist, suche zuerst in Berlin.
-- Recherchiere breit über mehrere Career-Map-Richtungen. Ziel sind 55–70 % Berlin und – sofern qualitativ möglich – mindestens fünf weitere passende europäische Städte (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp).
+- Folge der übergebenen Suchphase. In Berlin-Runden suchst du besonders gründlich über mehrere Career-Map-Richtungen; in Europa-Runden füllst du breit über passende europäische Städte auf (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp).
 - Verwende das aktuelle Datum.
 - Ein belastbares Veröffentlichungs-/Aktualisierungsdatum darf höchstens 30 Tage zurückliegen. Erfinde kein Datum. Fehlt es, muss eine aktive Bewerbungsfunktion eindeutig sichtbar sein.
 - Liefere 3–5 informative Sätze zu konkreten Aufgaben, Team/Projekt und Branche sowie einen spezifischen Profilbezug, ausschließlich aus vorhandenen Profildaten.
@@ -80,8 +80,13 @@ export default async function handler(req, res) {
     const exclude = compactExclusions(req.body?.exclude);
 
     const today = new Date().toISOString().slice(0, 10);
+    const searchRound = Math.min(MAX_SEARCH_ROUNDS, Math.max(1, Number(req.body?.searchRound) || 1));
+    const searchPhase = req.body?.searchPhase === "europe" ? "europe" : "berlin";
+    const verifiedBefore = Math.max(0, Number(req.body?.verifiedCount) || 0);
+    const berlinBefore = Math.max(0, Number(req.body?.berlinCount) || 0);
+    const roundDirective = buildRoundDirective({ phase: searchPhase, round: searchRound, verifiedCount: verifiedBefore, berlinCount: berlinBefore });
 
-    log("openai_create_started");
+    log("openai_create_started", { searchRound, searchPhase, verifiedBefore, berlinBefore });
 
     const requestId = String(req.body?.searchRequestId || randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 200);
     const response = await withRateLimitRetry(() => client.responses.create({
@@ -93,6 +98,12 @@ export default async function handler(req, res) {
 
       background: true,
       store: true,
+      metadata: {
+        search_round: String(searchRound),
+        search_phase: searchPhase,
+        verified_before: String(verifiedBefore),
+        berlin_before: String(berlinBefore)
+      },
 
       tools: [
         {
@@ -195,7 +206,9 @@ export default async function handler(req, res) {
             JSON.stringify(searchProfile) +
             "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
             JSON.stringify(exclude) +
-            "\n\nSuche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
+            "\n\nAKTUELLE SUCHRUNDE:\n" +
+            roundDirective +
+            "\n\nSuche jetzt live im Internet nach weiteren passenden aktuellen Stellen. Gib keine ausgeschlossenen oder bereits geprüften URLs erneut aus."
         }
       ],
 

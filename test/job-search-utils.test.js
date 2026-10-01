@@ -3,10 +3,20 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buildSearchProfile,
+  buildRoundDirective,
   compactExclusions,
   PUBLIC_JOB_ERROR,
   withRateLimitRetry
 } from "../api/job-search-utils.js";
+
+test("round directives exhaust Berlin before switching to a broad European fill", () => {
+  const berlin = buildRoundDirective({ phase: "berlin", round: 1, verifiedCount: 0, berlinCount: 0 });
+  const europe = buildRoundDirective({ phase: "europe", round: 3, verifiedCount: 6, berlinCount: 6 });
+  assert.match(berlin, /BERLIN INTENSIV/);
+  assert.match(berlin, /mehrere unterschiedliche Suchrichtungen/);
+  assert.match(europe, /EUROPA AUFFÜLLEN/);
+  assert.match(europe, /mindestens 12 neue Stellen/);
+});
 
 test("builds a compact matching profile without long Career Map prose", () => {
   const profile = {

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { rankForLocationMix, verifyJobs } from "./job-verification.js";
-import { PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
+import { JOB_SEARCH_TARGET, MAX_SEARCH_ROUNDS, PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -111,12 +111,31 @@ export default async function handler(req, res) {
       // Search results are candidates only: open and inspect every concrete listing
       // before filtering, ranking and returning anything to the browser.
       result.jobs = rankForLocationMix(await verifyJobs(candidates), 15);
+      // Return only candidate identity fields so later rounds can avoid both
+      // accepted and rejected URLs without repeating descriptions or profile data.
+      result.checked_candidates = candidates.map(job => ({ url: job.url, company: job.company, title: job.title }));
       result.checked_at = new Date().toISOString();
+
+      const searchRound = Number(response.metadata?.search_round) || 1;
+      const verifiedJobs = (Number(response.metadata?.verified_before) || 0) + result.jobs.length;
+      const berlinJobs = (Number(response.metadata?.berlin_before) || 0) + result.jobs.filter(job => /\bberlin\b/i.test(job.location || "")).length;
+      if (searchRound >= MAX_SEARCH_ROUNDS && verifiedJobs < JOB_SEARCH_TARGET) {
+        log("search_exhausted", {
+          verifiedJobs,
+          targetJobs: JOB_SEARCH_TARGET,
+          berlinJobs,
+          searchRounds: searchRound,
+          reason: "Search exhausted before target"
+        });
+      }
 
       log("response_sent", {
         httpStatus: 200,
         status: "complete",
-        resultJobCount: result.jobs.length
+        resultJobCount: result.jobs.length,
+        verifiedJobs,
+        berlinJobs,
+        searchRound
       });
       return res.status(200).json({
         status: "complete",

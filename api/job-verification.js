@@ -113,7 +113,7 @@ export function rankForLocationMix(jobs, limit = 15) {
   const ranked = [...jobs].sort((a, b) => (Number(b.fit_score) || 0) - (Number(a.fit_score) || 0));
   const berlin = ranked.filter(job => /\bberlin\b/i.test(job.location || ""));
   const elsewhere = ranked.filter(job => !/\bberlin\b/i.test(job.location || ""));
-  const targetBerlin = Math.min(berlin.length, Math.ceil(limit * 0.6));
+  const targetBerlin = Math.min(berlin.length, limit >= 12 ? 7 : Math.ceil(limit * 0.6));
   const selected = berlin.slice(0, targetBerlin);
   const citySeen = new Set();
   for (const job of elsewhere) {
