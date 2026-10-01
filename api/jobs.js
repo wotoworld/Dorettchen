@@ -35,7 +35,9 @@ Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
 Vergleiche insbesondere URL, Unternehmen und Stellentitel.
 
 QUALITÄT
-Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
+- Liefere 6 bis 10 wirklich passende und aktuell auffindbare Stellen.
+- Suche mit mehreren unterschiedlichen Suchanfragen und prüfe neben Jobbörsen auch die Karriereseiten der Unternehmen.
+- Eine leere Ergebnisliste ist nur zulässig, wenn nach mehreren Suchanfragen keine einzige konkrete Ausschreibung auffindbar war.
 `;
 
 export default async function handler(req, res) {
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
 
     const response = await client.responses.create({
-      model: "gpt-5.6-sol",
+      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
 
       reasoning: {
         effort: "medium"
@@ -71,12 +73,12 @@ export default async function handler(req, res) {
       tools: [
         {
           type: "web_search",
-          search_context_size: "medium",
+          search_context_size: "high",
           user_location: {
             type: "approximate",
-            country: "AT",
-            city: "Vienna",
-            timezone: "Europe/Vienna"
+            country: "DE",
+            city: "Berlin",
+            timezone: "Europe/Berlin"
           }
         }
       ],
@@ -165,7 +167,7 @@ export default async function handler(req, res) {
         }
       ],
 
-      max_output_tokens: 7000
+      max_output_tokens: 12000
     });
 
     return res.status(202).json({

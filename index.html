@@ -589,6 +589,9 @@ try{
   // Laufende Requests ueberleben einen Reload nicht. Ein persistiertes
   // Loading-Flag wuerde die Suche deshalb dauerhaft blockieren.
   if(s.jobsLoading)s.jobsLoading=false;
+  // Eine als "geladen" gespeicherte leere Liste darf einen neuen Versuch
+  // beim naechsten Besuch nicht verhindern.
+  if(s.jobsLoaded&&(!Array.isArray(s.jobs)||!s.jobs.length))s.jobsLoaded=false;
 }catch{}
 const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
   function resetTestData(){
