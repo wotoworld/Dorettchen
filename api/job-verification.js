@@ -64,9 +64,9 @@ function sourceLabel(job, finalUrl) {
 
 async function inspectJob(job, { now = new Date(), fetchImpl = fetch } = {}) {
   let url;
-  try { url = new URL(job?.url); } catch { return { job: null, reason: "verification" }; }
+  try { url = new URL(job?.url); } catch { return { job: null, reason: "invalid_url" }; }
   const host = url.hostname.toLowerCase();
-  if (!/^https?:$/.test(url.protocol) || GENERIC_PATHS.has(url.pathname.toLowerCase()) || host === "localhost" || host.endsWith(".local") || /^(?:127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(host)) return { job: null, reason: "verification" };
+  if (!/^https?:$/.test(url.protocol) || GENERIC_PATHS.has(url.pathname.toLowerCase()) || host === "localhost" || host.endsWith(".local") || /^(?:127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(host)) return { job: null, reason: "not_concrete_url" };
 
   let response;
   try {
@@ -75,23 +75,26 @@ async function inspectJob(job, { now = new Date(), fetchImpl = fetch } = {}) {
       headers: { "user-agent": "Mozilla/5.0 (compatible; DorettchenJobVerifier/1.0)", accept: "text/html,application/xhtml+xml" },
       signal: AbortSignal.timeout(9000)
     });
-  } catch { return { job: null, reason: "verification" }; }
-  if (!response.ok || response.status === 204) return { job: null, reason: "verification" };
+  } catch { return { job: null, reason: "page_unavailable" }; }
+  if (!response.ok || response.status === 204) return { job: null, reason: "page_unavailable", httpStatus: response.status };
   const type = response.headers?.get?.("content-type") || "";
-  if (type && !type.includes("html")) return { job: null, reason: "verification" };
+  if (type && !type.includes("html")) return { job: null, reason: "non_html" };
   const html = (await response.text()).slice(0, 1_500_000);
   const pageText = cleanText(html);
   const lower = normalise(pageText);
-  if (CLOSED_MARKERS.some(marker => lower.includes(normalise(marker)))) return { job: null, reason: "closed" };
-  if (pageText.length < 250 || !matchesIdentity(pageText, job.title) || !matchesIdentity(pageText, job.company)) return { job: null, reason: "verification" };
+  const closedMarker = CLOSED_MARKERS.find(marker => lower.includes(normalise(marker)));
+  if (closedMarker) return { job: null, reason: "closed", marker: closedMarker };
+  if (pageText.length < 250) return { job: null, reason: "page_too_short" };
+  if (!matchesIdentity(pageText, job.title)) return { job: null, reason: "title_mismatch" };
+  if (!matchesIdentity(pageText, job.company)) return { job: null, reason: "company_mismatch" };
 
   const publishedAt = extractPublishedAt(html);
   if (publishedAt) {
     const ageDays = (now.valueOf() - new Date(publishedAt).valueOf()) / 86_400_000;
-    if (ageDays > 30 || ageDays < -2) return { job: null, reason: "age" };
+    if (ageDays > 30 || ageDays < -2) return { job: null, reason: "age", publishedAt, ageDays: Math.round(ageDays * 10) / 10 };
   } else if (!ACTIVE_MARKERS.some(marker => lower.includes(normalise(marker)))) {
     // Without a trustworthy date, an active application control is mandatory.
-    return { job: null, reason: "verification" };
+    return { job: null, reason: "date_missing_no_active_marker" };
   }
 
   const finalUrl = response.url || url.href;
@@ -110,18 +113,26 @@ export async function verifyJobsWithDiagnostics(jobs, options = {}) {
   const candidates = Array.isArray(jobs) ? jobs.slice(0, 30) : [];
   const settled = await Promise.all(candidates.map(job => inspectJob(job, options)));
   const seen = new Set();
-  const diagnostics = { rejectedByVerification: 0, rejectedByAge: 0, rejectedAsClosed: 0, duplicatesRemoved: 0 };
+  const diagnostics = { rejectedByVerification: 0, rejectedByAge: 0, rejectedAsClosed: 0, duplicatesRemoved: 0, rejectionReasons: {}, candidateOutcomes: [] };
   const verified = [];
   for (const result of settled) {
     if (!result.job) {
       if (result.reason === "age") diagnostics.rejectedByAge++;
       else if (result.reason === "closed") diagnostics.rejectedAsClosed++;
       else diagnostics.rejectedByVerification++;
+      diagnostics.rejectionReasons[result.reason] = (diagnostics.rejectionReasons[result.reason] || 0) + 1;
+      diagnostics.candidateOutcomes.push({ url: candidates[diagnostics.candidateOutcomes.length]?.url || null, outcome: "rejected", reason: result.reason, httpStatus: result.httpStatus, marker: result.marker, publishedAt: result.publishedAt, ageDays: result.ageDays });
       continue;
     }
     const key = new URL(result.job.url).href.replace(/\/$/, "").toLowerCase();
-    if (seen.has(key)) diagnostics.duplicatesRemoved++;
-    else { seen.add(key); verified.push(result.job); }
+    if (seen.has(key)) {
+      diagnostics.duplicatesRemoved++;
+      diagnostics.rejectionReasons.duplicate_url = (diagnostics.rejectionReasons.duplicate_url || 0) + 1;
+      diagnostics.candidateOutcomes.push({ url: result.job.url, outcome: "rejected", reason: "duplicate_url" });
+    } else {
+      seen.add(key); verified.push(result.job);
+      diagnostics.candidateOutcomes.push({ url: result.job.url, outcome: "verified", reason: null });
+    }
   }
   return { jobs: verified, diagnostics };
 }

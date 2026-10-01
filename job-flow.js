@@ -33,8 +33,25 @@
 
   function appendJobs(existing, incoming) {
     const before = dedupeJobs(existing);
-    const combined = dedupeJobs([...before, ...(Array.isArray(incoming) ? incoming : [])]);
-    return { jobs: combined, added: combined.length - before.length, duplicatesRemoved: before.length + (incoming?.length || 0) - combined.length };
+    const urls = new Set(before.map(job => identityKeys(job).url));
+    const tuples = new Set(before.map(job => identityKeys(job).tuple));
+    const combined = [...before];
+    let rejectedInvalidShape = 0, rejectedUrlDuplicate = 0, rejectedTupleDuplicate = 0;
+    for (const job of Array.isArray(incoming) ? incoming : []) {
+      if (!job?.url || !job?.title || !job?.company) { rejectedInvalidShape++; continue; }
+      const { url, tuple } = identityKeys(job);
+      if (urls.has(url)) { rejectedUrlDuplicate++; continue; }
+      if (tuples.has(tuple)) { rejectedTupleDuplicate++; continue; }
+      urls.add(url); tuples.add(tuple); combined.push(job);
+    }
+    return {
+      jobs: combined,
+      added: combined.length - before.length,
+      duplicatesRemoved: rejectedUrlDuplicate + rejectedTupleDuplicate,
+      rejectedInvalidShape,
+      rejectedUrlDuplicate,
+      rejectedTupleDuplicate
+    };
   }
 
   function combineAppendRounds(existing, round1, round2 = []) {

@@ -876,7 +876,11 @@ async function resumeJobsPolling(){
       return data;
       }
     });
-    if(pollingResult.outcome==='complete')return finishJobsRound(pollingResult.result?.jobs||[]);
+    if(pollingResult.outcome==='complete'){
+      const received=Array.isArray(pollingResult.result?.jobs)?pollingResult.result.jobs:[];
+      jobDiagnostic('frontend_result_received',{jobId:s.jobsJobId,jobsReceivedByFrontend:received.length,searchRound:s.jobsRound||1});
+      return finishJobsRound(received);
+    }
     jobDiagnostic('polling_stopped',{pollCount:pollingResult.pollCount,openAIStatus:pollingResult.lastStatus,pollingOutcome:pollingResult.outcome});
     if(pollingResult.outcome==='terminal_error')return finishJobsError(false);
     return pauseJobsPolling();
@@ -923,7 +927,7 @@ function finishJobsSuccess(incoming){
   const freshCount=merged.added;
   s.jobs=merged.jobs;s.jobsLoaded=true;s.jobsLoading=false;s.jobsJobId=null;s.jobsSearchVersion=null;s.jobsPollingPaused=false;s.jobsAppend=false;s.jobsRound=1;s.jobsPending=[];s.jobsRequestId=null;
   s.jobsError='';s.jobsNotice=freshCount===0?(append?'Diesmal konnten keine weiteren verifizierten Stellen gefunden werden.':'Diesmal konnten keine verifizierten Stellen gefunden werden.'):'';
-  jobDiagnostic('append_completed',{duplicatesRemoved:merged.duplicatesRemoved,newJobsReturned:incoming.length,existingJobsBeforeAppend:existing.length,newJobsAppended:freshCount,totalNewJobs:freshCount,totalJobsAfterAppend:s.jobs.length,round2Started:(append&&completedRound===2)?'true':'false'});
+  jobDiagnostic('append_completed',{duplicatesRemoved:merged.duplicatesRemoved,rejectedUrlDuplicate:merged.rejectedUrlDuplicate||0,rejectedTupleDuplicate:merged.rejectedTupleDuplicate||0,rejectedInvalidShape:merged.rejectedInvalidShape||0,newJobsReturned:incoming.length,jobsBeforeFrontendDeduplication:existing.length+incoming.length,jobsAfterFrontendDeduplication:merged.jobs.length,existingJobsBeforeAppend:existing.length,newJobsAppended:freshCount,totalNewJobs:freshCount,totalJobsAfterAppend:s.jobs.length,round2Started:(append&&completedRound===2)?'true':'false'});
   if(!s.jobs.length)s.jobsError='Bitte starte eine neue Live-Suche. Es werden keine statischen oder ungeprüften Ersatztreffer angezeigt.';
   save();render();
 }
