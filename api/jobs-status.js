@@ -5,7 +5,6 @@ const client = new OpenAI({
 });
 
 export default async function handler(req, res) {
-
   if (req.method !== "GET") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -13,7 +12,6 @@ export default async function handler(req, res) {
   }
 
   try {
-
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY fehlt");
     }
@@ -28,31 +26,25 @@ export default async function handler(req, res) {
 
     const response = await client.responses.retrieve(jobId);
 
-    /*
-     * Suche läuft noch
-     */
     if (
       response.status === "queued" ||
       response.status === "in_progress"
     ) {
-
       return res.status(200).json({
         status: response.status
       });
     }
 
-    /*
-     * Suche fertig
-     */
     if (response.status === "completed") {
-
       let result;
 
       try {
-
-        result = JSON.parse(response.output_text);
-
+        result = JSON.parse(response.output_text || "");
       } catch (error) {
+        console.error(
+          "JOBS JSON PARSE ERROR:",
+          response.output_text
+        );
 
         return res.status(500).json({
           status: "error",
@@ -65,7 +57,6 @@ export default async function handler(req, res) {
         !result ||
         !Array.isArray(result.jobs)
       ) {
-
         return res.status(500).json({
           status: "error",
           error:
@@ -73,12 +64,10 @@ export default async function handler(req, res) {
         });
       }
 
-      /*
-       * Nur brauchbare Stellen an das Frontend weitergeben
-       */
       result.jobs = result.jobs
         .filter(job =>
           job &&
+          typeof job === "object" &&
           job.title &&
           job.company &&
           job.url
@@ -91,24 +80,17 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * OpenAI Job fehlgeschlagen
-     */
     if (response.status === "failed") {
-
       return res.status(500).json({
         status: "error",
         error:
+          response.error?.message ||
           response.last_error?.message ||
           "Die Live-Stellensuche ist fehlgeschlagen."
       });
     }
 
-    /*
-     * Job abgebrochen
-     */
     if (response.status === "cancelled") {
-
       return res.status(500).json({
         status: "error",
         error:
@@ -116,15 +98,20 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * Unbekannter Zwischenstatus
-     */
+    if (response.status === "incomplete") {
+      return res.status(500).json({
+        status: "error",
+        error:
+          response.incomplete_details?.reason ||
+          "Die Live-Stellensuche wurde nicht vollständig abgeschlossen."
+      });
+    }
+
     return res.status(200).json({
       status: response.status || "queued"
     });
 
   } catch (error) {
-
     console.error("JOBS STATUS ERROR:", error);
 
     return res.status(500).json({
