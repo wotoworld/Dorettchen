@@ -5,7 +5,7 @@ const client = new OpenAI({
 });
 
 const system = `
-Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
+Du bist der SEARCH-Schritt einer Live-Praktikums- und Job-Pipeline. Danach prüft der Server jede konkrete Seite (VERIFY → FILTER → RANK → RENDER).
 
 DEINE AUFGABE
 Finde konkrete, aktuell auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
@@ -21,21 +21,24 @@ WICHTIG:
 - Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
 - Bevorzuge direkte Bewerbungsseiten.
 - Seriöse Jobplattformen sind ebenfalls erlaubt.
-- Wenn eine Stelle offensichtlich geschlossen oder abgelaufen ist, gib sie nicht zurück.
+- Öffne jeden Treffer in der Websuche und prüfe die KONKRETE Ausschreibungsseite; ein Suchsnippet allein genügt nie.
+- Wenn eine Stelle geschlossen, abgelaufen, entfernt oder nicht mehr bewerbbar ist, gib sie nicht zurück.
+- Bevorzuge direkte Unternehmensseiten und ATS wie Greenhouse, Lever, Workday, Personio, JOIN und SmartRecruiters.
 - Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
 - Suche mehrere Richtungen, die zum Career-Profil passen.
 - Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
 - Wenn Berlin als Standortpräferenz vorhanden ist, suche zuerst in Berlin.
-- Danach können passende europäische Städte berücksichtigt werden.
+- Recherchiere breit über mehrere Career-Map-Richtungen. Ziel sind 55–70 % Berlin und – sofern qualitativ möglich – mindestens fünf weitere passende europäische Städte (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp).
 - Verwende das aktuelle Datum.
-- Aktualität ist wichtig.
+- Ein belastbares Veröffentlichungs-/Aktualisierungsdatum darf höchstens 30 Tage zurückliegen. Erfinde kein Datum. Fehlt es, muss eine aktive Bewerbungsfunktion eindeutig sichtbar sein.
+- Liefere 3–5 informative Sätze zu konkreten Aufgaben, Team/Projekt und Branche sowie einen spezifischen Profilbezug, ausschließlich aus vorhandenen Profildaten.
 
 BEREITS GEFUNDENE STELLEN
 Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
 Vergleiche insbesondere URL, Unternehmen und Stellentitel.
 
 QUALITÄT
-Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
+Ermittle bis zu 30 gute Kandidaten, damit nach der technischen Verifikation 10–15 übrig bleiben können. Gib lieber weniger zurück als zweifelhafte Treffer.
 `;
 
 export default async function handler(req, res) {
@@ -83,7 +86,7 @@ export default async function handler(req, res) {
       model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
 
       reasoning: {
-        effort: "medium"
+        effort: "high"
       },
 
       background: true,
@@ -92,7 +95,7 @@ export default async function handler(req, res) {
       tools: [
         {
           type: "web_search",
-          search_context_size: "medium",
+          search_context_size: "high",
           user_location: {
             type: "approximate",
             country: "DE",
@@ -145,6 +148,12 @@ export default async function handler(req, res) {
                     },
                     source: {
                       type: "string"
+                    },
+                    published_at: {
+                      type: ["string", "null"]
+                    },
+                    fit_score: {
+                      type: "number"
                     }
                   },
                   required: [
@@ -155,7 +164,9 @@ export default async function handler(req, res) {
                     "url",
                     "description",
                     "why_fit",
-                    "source"
+                    "source",
+                    "published_at",
+                    "fit_score"
                   ]
                 }
               }

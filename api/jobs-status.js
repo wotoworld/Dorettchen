@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { rankForLocationMix, verifyJobs } from "./job-verification.js";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -103,7 +104,7 @@ export default async function handler(req, res) {
         });
       }
 
-      result.jobs = result.jobs
+      const candidates = result.jobs
         .filter(job =>
           job &&
           typeof job === "object" &&
@@ -112,7 +113,12 @@ export default async function handler(req, res) {
           typeof job.url === "string" &&
           job.url.startsWith("http")
         )
-        .slice(0, 15);
+        .slice(0, 30);
+
+      // Search results are candidates only: open and inspect every concrete listing
+      // before filtering, ranking and returning anything to the browser.
+      result.jobs = rankForLocationMix(await verifyJobs(candidates), 15);
+      result.checked_at = new Date().toISOString();
 
       log("response_sent", {
         httpStatus: 200,

@@ -2,8 +2,10 @@
   "name": "doro-career-discovery",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "test": "node --test"
   },
   "dependencies": {
     "@vercel/functions": "^3.0.0",
