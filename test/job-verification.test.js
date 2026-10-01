@@ -40,7 +40,33 @@ test("reports age, closed, verification and exact URL duplicate rejections separ
   };
   const result = await verifyJobsWithDiagnostics([job, { ...job }, old, closed, invalid], { now: new Date("2026-10-01T12:00:00Z"), fetchImpl });
   assert.equal(result.jobs.length, 1);
-  assert.deepEqual(result.diagnostics, { rejectedByVerification: 1, rejectedByAge: 1, rejectedAsClosed: 1, duplicatesRemoved: 1 });
+  assert.equal(result.diagnostics.rejectedByVerification, 1);
+  assert.equal(result.diagnostics.rejectedByAge, 1);
+  assert.equal(result.diagnostics.rejectedAsClosed, 1);
+  assert.equal(result.diagnostics.duplicatesRemoved, 1);
+  assert.deepEqual(result.diagnostics.rejectionReasons, { duplicate_url: 1, age: 1, closed: 1, invalid_url: 1 });
+  assert.deepEqual(result.diagnostics.candidateOutcomes.map(item => item.reason), [null, "duplicate_url", "age", "closed", "invalid_url"]);
+});
+
+test("distinguishes unavailable, generic, identity, and missing-date verification losses", async () => {
+  const candidates = [
+    { ...job, url: "https://jobs.example.com/jobs" },
+    { ...job, url: "https://jobs.example.com/jobs/unavailable" },
+    { ...job, url: "https://jobs.example.com/jobs/wrong-title" },
+    { ...job, url: "https://jobs.example.com/jobs/no-active-marker" }
+  ];
+  const fetchImpl = async url => {
+    if (String(url).endsWith("unavailable")) throw new Error("network failure");
+    if (String(url).endsWith("wrong-title")) return response(page("}").replaceAll("Junior Event Manager", "Unrelated Position"), { url: String(url) });
+    return response(page("}").replace("Apply now", "Read more"), { url: String(url) });
+  };
+  const result = await verifyJobsWithDiagnostics(candidates, { fetchImpl });
+  assert.deepEqual(result.diagnostics.rejectionReasons, {
+    not_concrete_url: 1,
+    page_unavailable: 1,
+    title_mismatch: 1,
+    date_missing_no_active_marker: 1
+  });
 });
 
 test("prioritises Berlin while introducing distinct European cities", () => {

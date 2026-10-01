@@ -6,6 +6,25 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+function webSearchTrace(output) {
+  const calls = (Array.isArray(output) ? output : []).filter(item => item?.type === "web_search_call");
+  const actions = calls.map(item => ({
+    callId: item.id || null,
+    status: item.status || null,
+    actionType: item.action?.type || null,
+    query: item.action?.query || null,
+    url: item.action?.url || null,
+    sources: (Array.isArray(item.action?.sources) ? item.action.sources : []).map(source => source?.url || source).filter(Boolean)
+  }));
+  const urls = actions.flatMap(action => [action.url, ...action.sources]).filter(Boolean);
+  return {
+    webSearchToolCalls: calls.length,
+    actualSearchQueries: [...new Set(actions.map(action => action.query).filter(Boolean))],
+    webSearchActions: actions,
+    visitedDomains: [...new Set(urls.map(value => { try { return new URL(value).hostname; } catch { return null; } }).filter(Boolean))]
+  };
+}
+
 export default async function handler(req, res) {
   const flowId = req.query?.diagnosticFlowId || req.headers["x-diagnostic-flow-id"] || "missing";
   const jobId = req.query?.jobId;
@@ -98,6 +117,14 @@ export default async function handler(req, res) {
         return res.status(500).json(PUBLIC_JOB_ERROR);
       }
 
+      const rawJobsReturned = result.jobs.length;
+      const shapeValidCandidates = result.jobs.filter(job =>
+        job && typeof job === "object" && typeof job.title === "string" &&
+        typeof job.company === "string" && typeof job.url === "string" && job.url.startsWith("http")
+      );
+      const invalidCandidateShape = result.jobs.length - shapeValidCandidates.length;
+      const candidatesTruncatedByLimit = Math.max(0, shapeValidCandidates.length - 30);
+
       const candidates = result.jobs
         .filter(job =>
           job &&
@@ -122,18 +149,38 @@ export default async function handler(req, res) {
         queriesExecuted: searchDiagnostics.queriesExecuted || [],
         searchLevelsUsed: searchDiagnostics.searchLevelsUsed || 0,
         candidatesFound: searchDiagnostics.candidatesFound ?? candidates.length,
+        rawJobsReturned,
+        validCandidateShape: shapeValidCandidates.length,
+        invalidCandidateShape,
+        candidatesTruncatedByLimit,
         verifiedJobs: verifiedCandidates.length,
         duplicatesRemoved: (searchDiagnostics.duplicatesRemoved || 0) + verification.diagnostics.duplicatesRemoved,
         rejectedByVerification: verification.diagnostics.rejectedByVerification,
         rejectedByAge: verification.diagnostics.rejectedByAge,
         rejectedAsClosed: verification.diagnostics.rejectedAsClosed,
         rejectedByCareerFit: searchDiagnostics.rejectedByCareerFit || 0,
+        rejectionReasons: verification.diagnostics.rejectionReasons,
         newJobsReturned: result.jobs.length
       };
       result.search_diagnostics = diagnostics;
       log("verification_completed", {
         searchMode: response.metadata?.search_mode || "single_focused_run",
         ...diagnostics
+      });
+      log("production_forensics", {
+        searchMode: response.metadata?.search_mode || "single_focused_run",
+        rawJobsReturned,
+        jobsAfterBackendShapeValidation: shapeValidCandidates.length,
+        jobsSubmittedToVerification: candidates.length,
+        candidatesTruncatedByLimit,
+        jobsAfterVerificationAndUrlDeduplication: verifiedCandidates.length,
+        jobsSentToFrontend: result.jobs.length,
+        modelReportedDiagnostics: searchDiagnostics,
+        verificationRejectionReasons: verification.diagnostics.rejectionReasons,
+        verificationCandidateOutcomes: verification.diagnostics.candidateOutcomes,
+        ...webSearchTrace(response.output),
+        incompleteDetails: response.incomplete_details || null,
+        usage: response.usage || null
       });
       log(`round${searchRound}_completed`, {
         [`round${searchRound}Candidates`]: candidates.length,

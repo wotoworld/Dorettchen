@@ -3,10 +3,12 @@ const ALLOWED_METRICS = [
   "candidatesVerified", "candidatesRejected", "duplicatesRemoved", "newJobsReturned",
   "existingJobsBeforeAppend", "newJobsAppended", "totalJobsAfterAppend", "pollCount"
   , "round1Candidates", "round1Verified", "round1NewAfterDedup",
-  "round2Candidates", "round2Verified", "round2NewAfterDedup", "totalNewJobs"
+  "round2Candidates", "round2Verified", "round2NewAfterDedup", "totalNewJobs",
+  "jobsReceivedByFrontend", "jobsBeforeFrontendDeduplication", "jobsAfterFrontendDeduplication",
+  "rejectedUrlDuplicate", "rejectedTupleDuplicate", "rejectedInvalidShape"
 ];
 
-const ALLOWED_TEXT = ["openAIStatus", "pollingOutcome", "round2Started"];
+const ALLOWED_TEXT = ["openAIStatus", "pollingOutcome", "round2Started", "jobId"];
 
 export default function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ status: "error" });

@@ -62,6 +62,19 @@ test("deduplication uses URL or company-title-location, never company alone", ()
   assert.equal(result.jobs[1].title, "Marketing Intern");
 });
 
+test("append diagnostics distinguish URL and identity-tuple duplicates", () => {
+  const existing = [{ title: "Role A", company: "Acme", location: "Berlin", url: "https://acme.test/a" }];
+  const result = JobFlow.appendJobs(existing, [
+    { title: "Different", company: "Elsewhere", location: "Paris", url: "https://acme.test/a/" },
+    { title: "Role A", company: "Acme", location: "Berlin", url: "https://acme.test/b" },
+    { title: "Role B", company: "Acme", location: "Berlin", url: "https://acme.test/c" }
+  ]);
+  assert.equal(result.added, 1);
+  assert.equal(result.rejectedUrlDuplicate, 1);
+  assert.equal(result.rejectedTupleDuplicate, 1);
+  assert.equal(result.rejectedInvalidShape, 0);
+});
+
 test("stale persisted search ids are discarded without deleting displayed jobs", () => {
   const jobs = [job(1)];
   const stale = JobFlow.invalidateStaleSearch({ jobs, jobsJobId: "old-job", jobsSearchVersion: 1, jobsLoading: true, jobsAppend: true }, 2);
