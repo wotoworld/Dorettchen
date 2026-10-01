@@ -568,26 +568,36 @@ button:focus-visible{
 @keyframes jobPulse{0%,100%{opacity:.45;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
 .jobLoadingDots::after{content:'';display:inline-block;width:1.2em;text-align:left;animation:jobDots 1.4s steps(4,end) infinite}
 @keyframes jobDots{0%{content:''}25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}
+.savedJobsBtn{position:fixed;top:18px;left:18px;z-index:9999;min-height:42px;border:1px solid #d8d4cc;background:rgba(255,255,255,.94);border-radius:999px;padding:9px 14px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px #00000010}.savedJobsBtn span{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:5px;border-radius:50%;background:#171717;color:#fff;font-size:11px}.jobCard{position:relative}.saveJobBtn{position:absolute;right:18px;top:18px;width:44px;height:44px;border-radius:50%;border:1px solid #d8d4cc;background:#fff;font-size:23px;cursor:pointer;touch-action:manipulation}.saveJobBtn[aria-pressed="true"]{background:#171717;color:#fff}.jobCard h3{padding-right:52px}.jobActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:18px}.jobSource{font-size:13px;color:#77736c}.jobsFooter{text-align:center;margin-top:24px}.savedPage,.motivationPage{max-width:1120px;margin:70px auto}.savedHeader{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:28px}.emptySaved{text-align:center;padding:55px 24px}.jobStatus{min-height:130px;justify-content:center}.gridCentered{display:flex!important;flex-wrap:wrap;justify-content:center}.gridCentered>*{flex:0 1 calc(33.333% - 10px);box-sizing:border-box}.directionGrid2.gridCentered>*,.profileGrid2.gridCentered>*{flex-basis:calc(50% - 8px)}.motivationGrid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:16px;margin-top:28px}.motivationSide{padding:26px}.motivationText{box-sizing:border-box;width:100%;min-height:360px;padding:16px;border:1px solid #d8d4cc;border-radius:14px;background:#fff;font:inherit;line-height:1.6;resize:vertical}.motivationTools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.motivationLoading{min-height:360px;display:grid;place-items:center;color:#6d6a65}
+@media(max-width:800px){.gridCentered>*{flex-basis:calc(50% - 8px)}.directionGrid2.gridCentered>*,.profileGrid2.gridCentered>*{flex-basis:100%}.radarSvg{max-width:min(620px,100%)}.dnaVisual2{padding-inline:8px}.savedHeader{align-items:flex-start;flex-direction:column}.motivationGrid{grid-template-columns:1fr}}
+@media(max-width:520px){.savedJobsBtn{top:10px;left:10px;padding:9px 11px}.savedJobsBtn .savedLabel{display:none}.gridCentered>*{flex-basis:100%}}
 </style>
 
 </head><body>
 <button class="restartBtn" onclick="resetTestData()">↻ Neu starten</button>
+<button class="savedJobsBtn" onclick="showSavedJobs()" aria-label="Merkliste öffnen">♡ <span class="savedLabel">Merkliste</span><span id="savedJobsCount">0</span></button>
 <main class="wrap">
   <div id="app"></div>
 </main>
 <script>
 const Q=[{"id": 1, "type": "single", "question": "Was reizt dich spontan am meisten?", "options": ["Etwas Neues konzipieren", "Menschen begleiten", "Ein Projekt organisieren", "Ein komplexes Problem lösen"], "dimension": "creative"}, {"id": 2, "type": "rank", "question": "Ordne nach Interesse: Was würdest du am liebsten in einem Praktikum ausprobieren?", "options": ["Kreative Konzepte", "Menschen & Beziehungen", "Business & Strategie", "Events & Erlebnisse"], "dimension": "mixed"}, {"id": 3, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit sichtbar etwas gestaltet oder verändert?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 4, "type": "single", "question": "Du bekommst eine völlig offene Aufgabe. Was machst du zuerst?", "options": ["Ich entwickle spontan eine Idee", "Ich spreche mit anderen", "Ich recherchiere Beispiele", "Ich definiere erst Struktur und Ziel"], "dimension": "autonomy"}, {"id": 5, "type": "single", "question": "Was klingt attraktiver?", "options": ["Eine Idee entwickeln", "Eine bestehende Idee perfektionieren", "Ein Team koordinieren", "Ein Problem analytisch lösen"], "dimension": "creative"}, {"id": 6, "type": "scale", "question": "Wie viel Kontakt mit Menschen möchtest du an einem normalen Arbeitstag?", "options": ["1 – möglichst wenig", "2 – etwas", "3 – viel", "4 – sehr viel"], "dimension": "people"}, {"id": 7, "type": "rank", "question": "Rangiere diese Arbeitsumgebungen nach Attraktivität.", "options": ["Kreativstudio", "Start-up", "Internationaler Konzern", "Kleine Spezialfirma"], "dimension": "environment"}, {"id": 8, "type": "single", "question": "Was wäre dir bei einem Praktikum wichtiger?", "options": ["Viel ausprobieren", "Ein starkes Netzwerk", "Ein bekannter Name", "Eine klare Übernahmeperspektive"], "dimension": "career"}, {"id": 9, "type": "single", "question": "Wie reagierst du auf unklare Aufgaben?", "options": ["Das finde ich spannend", "Ich brauche einen groben Rahmen", "Ich bevorzuge klare Vorgaben", "Das stresst mich"], "dimension": "autonomy"}, {"id": 10, "type": "rank", "question": "Was motiviert dich am stärksten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 11, "type": "scale", "question": "Wie wichtig ist dir Ästhetik in deiner Arbeitsumgebung?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "aesthetic"}, {"id": 12, "type": "single", "question": "Was würdest du eher wählen?", "options": ["Ein kleines kreatives Team mit viel Freiheit", "Ein großes Unternehmen mit starkem Namen", "Ein Start-up mit hohem Risiko", "Eine etablierte Firma mit klarer Struktur"], "dimension": "environment"}, {"id": 13, "type": "scale", "question": "Wie sehr reizt dich die Eventwelt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 14, "type": "scale", "question": "Wie sehr reizt dich Design?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 15, "type": "scale", "question": "Wie sehr reizt dich Kunst und Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 16, "type": "scale", "question": "Wie sehr reizt dich Reisen als Bestandteil eines Jobs?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 17, "type": "scale", "question": "Wie wichtig ist dir Internationalität?", "options": ["1 – unwichtig", "2 – eher unwichtig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 18, "type": "scale", "question": "Wie wichtig ist dir langfristig ein hohes Einkommen?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 19, "type": "scale", "question": "Wie wichtig ist dir Sicherheit und Planbarkeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 20, "type": "scale", "question": "Wie attraktiv findest du Unternehmertum?", "options": ["1 – gar nicht", "2 – etwas", "3 – interessant", "4 – sehr attraktiv"], "dimension": "entrepreneur"}, {"id": 21, "type": "rank", "question": "Wenn du ein eigenes Projekt starten würdest, was reizt dich am meisten?", "options": ["Die Vision", "Die Menschen", "Das Produkt", "Das Wachstum"], "dimension": "entrepreneur"}, {"id": 22, "type": "scale", "question": "Wie viel Risiko würdest du für eine spannende Chance akzeptieren?", "options": ["1 – fast keines", "2 – wenig", "3 – einiges", "4 – viel"], "dimension": "risk"}, {"id": 23, "type": "scale", "question": "Wie schnell langweilen dich Routinen?", "options": ["1 – fast nie", "2 – selten", "3 – relativ schnell", "4 – sehr schnell"], "dimension": "variety"}, {"id": 24, "type": "scale", "question": "Wie wichtig ist dir Abwechslung?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "variety"}, {"id": 25, "type": "single", "question": "Was klingt besser?", "options": ["Viele kleine Projekte", "Ein großes Projekt über Monate", "Eine Mischung", "Klare wiederkehrende Aufgaben"], "dimension": "variety"}, {"id": 26, "type": "scale", "question": "Wie gerne präsentierst du vor anderen?", "options": ["1 – sehr ungern", "2 – eher ungern", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 27, "type": "scale", "question": "Wie wichtig ist Teamarbeit?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 28, "type": "scale", "question": "Wie gerne übernimmst du Verantwortung?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 29, "type": "rank", "question": "Was ist dir bei Kolleg:innen am wichtigsten?", "options": ["Kreativität", "Verlässlichkeit", "Ambition", "Empathie"], "dimension": "people"}, {"id": 30, "type": "scale", "question": "Wie wichtig ist dir ein gutes Arbeitsklima?", "options": ["1 – etwas", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "people"}, {"id": 31, "type": "scale", "question": "Wie sehr interessiert dich Markenaufbau?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 32, "type": "scale", "question": "Wie sehr interessiert dich Marketing?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 33, "type": "scale", "question": "Wie sehr interessiert dich Mode?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 34, "type": "scale", "question": "Wie sehr interessiert dich Luxus?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 35, "type": "scale", "question": "Wie sehr interessiert dich Hospitality?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 36, "type": "scale", "question": "Wie sehr interessiert dich Entertainment?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 37, "type": "scale", "question": "Wie sehr interessiert dich Technologie?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 38, "type": "scale", "question": "Wie sehr interessiert dich Start-up-Kultur?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "entrepreneur"}, {"id": 39, "type": "scale", "question": "Wie wichtig ist dir gesellschaftlicher Impact?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 40, "type": "scale", "question": "Wie wichtig ist dir, dass deine Arbeit einen Sinn hat?", "options": ["1 – kaum", "2 – eher wenig", "3 – wichtig", "4 – sehr wichtig"], "dimension": "values"}, {"id": 41, "type": "scale", "question": "Wie wichtig ist dir Status?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 42, "type": "single", "question": "Welche Motivation ist dir am wichtigsten?", "options": ["Begeisterung", "Erfolg", "Sicherheit", "Anerkennung"], "dimension": "motivation"}, {"id": 43, "type": "single", "question": "Wie gehst du mit Kritik um?", "options": ["Ich nutze sie direkt", "Ich denke darüber nach", "Ich brauche Abstand", "Ich nehme sie ungern an"], "dimension": "learning"}, {"id": 44, "type": "scale", "question": "Wie gerne lernst du neue Dinge?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "learning"}, {"id": 45, "type": "scale", "question": "Wie wichtig ist dir persönliche Entwicklung?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "learning"}, {"id": 46, "type": "single", "question": "Was beschreibt dich eher?", "options": ["Generalist:in", "Spezialist:in", "T-shaped: beides", "Noch unklar"], "dimension": "learning"}, {"id": 47, "type": "scale", "question": "Wie gerne arbeitest du mit Zahlen?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 48, "type": "scale", "question": "Wie gerne recherchierst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "analytical"}, {"id": 49, "type": "scale", "question": "Wie gerne schreibst du?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 50, "type": "scale", "question": "Wie gerne verhandelst du?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "communication"}, {"id": 51, "type": "scale", "question": "Wie wichtig ist dir eine internationale Karriere?", "options": ["1 – unwichtig", "2 – vielleicht", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 52, "type": "single", "question": "Würdest du für ein gutes Praktikum mehrere Monate ins Ausland gehen?", "options": ["Sofort", "Wahrscheinlich", "Vielleicht", "Eher nicht"], "dimension": "international"}, {"id": 53, "type": "rank", "question": "Welche Stadtatmosphäre reizt dich am meisten?", "options": ["Kreativ & kulturell", "Business & international", "Ruhig & hochwertig", "Dynamisch & jung"], "dimension": "environment"}, {"id": 54, "type": "scale", "question": "Wie wichtig ist dir, dass dein Job Reisen ermöglicht?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "international"}, {"id": 55, "type": "scale", "question": "Wie wichtig ist dir Flexibilität beim Arbeitsort?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "autonomy"}, {"id": 56, "type": "scale", "question": "Wie wichtig ist dir Work-Life-Balance?", "options": ["1 – kaum", "2 – wichtig", "3 – sehr wichtig", "4 – extrem wichtig"], "dimension": "lifestyle"}, {"id": 57, "type": "single", "question": "Würdest du für einen Traumjob zeitweise sehr intensiv arbeiten?", "options": ["Ja, sofort", "Eher ja", "Eher nein", "Nein"], "dimension": "career"}, {"id": 58, "type": "scale", "question": "Wie wichtig ist dir Freizeit für deine Identität?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 59, "type": "scale", "question": "Wie wichtig ist dir ein soziales Umfeld außerhalb der Arbeit?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 60, "type": "scale", "question": "Wie wichtig ist dir kulturelles Leben in deiner Stadt?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "lifestyle"}, {"id": 61, "type": "scale", "question": "Wie sehr reizt dich die Arbeit mit Künstler:innen oder Kreativen?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 62, "type": "scale", "question": "Wie sehr reizt dich die Organisation kreativer Projekte?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 63, "type": "scale", "question": "Wie sehr reizt dich das Entwickeln von Konzepten?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 64, "type": "scale", "question": "Wie sehr reizt dich Kundenkontakt?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 65, "type": "scale", "question": "Wie sehr reizt dich B2B-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 66, "type": "scale", "question": "Wie sehr reizt dich B2C-Arbeit?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 67, "type": "scale", "question": "Wie wichtig ist dir ein sichtbares Endprodukt?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 68, "type": "scale", "question": "Wie gerne organisierst du Dinge?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 69, "type": "scale", "question": "Wie gut kannst du viele Dinge gleichzeitig verfolgen?", "options": ["1 – schwer", "2 – mittel", "3 – gut", "4 – sehr gut"], "dimension": "organization"}, {"id": 70, "type": "single", "question": "Wie reagierst du auf kurzfristige Änderungen?", "options": ["Ich mag die Dynamik", "Ich passe mich an", "Ich brauche etwas Zeit", "Das stresst mich"], "dimension": "variety"}, {"id": 71, "type": "scale", "question": "Wie wichtig ist dir Struktur?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "organization"}, {"id": 72, "type": "scale", "question": "Wie wichtig ist dir Spontaneität?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 73, "type": "scale", "question": "Wie gerne leitest du Meetings?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "leadership"}, {"id": 74, "type": "scale", "question": "Wie gerne baust du Beziehungen auf?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 75, "type": "scale", "question": "Wie wichtig ist Networking für dich?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "people"}, {"id": 76, "type": "scale", "question": "Wie leicht fällt es dir, auf fremde Menschen zuzugehen?", "options": ["1 – schwer", "2 – eher schwer", "3 – eher leicht", "4 – sehr leicht"], "dimension": "people"}, {"id": 77, "type": "scale", "question": "Wie gerne arbeitest du mit externen Partnern?", "options": ["1 – ungern", "2 – manchmal", "3 – gerne", "4 – sehr gerne"], "dimension": "people"}, {"id": 78, "type": "scale", "question": "Wie gerne koordinierst du unterschiedliche Interessen?", "options": ["1 – ungern", "2 – wenn nötig", "3 – gerne", "4 – sehr gerne"], "dimension": "organization"}, {"id": 79, "type": "scale", "question": "Wie wichtig ist dir Kreativität im Alltag?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – extrem wichtig"], "dimension": "creative"}, {"id": 80, "type": "scale", "question": "Wie wichtig ist dir persönlicher Ausdruck?", "options": ["1 – kaum", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "creative"}, {"id": 81, "type": "scale", "question": "Wie sehr reizt dich Fotografie/Visual Content?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 82, "type": "scale", "question": "Wie sehr reizt dich Social Media als Berufsfeld?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 83, "type": "scale", "question": "Wie sehr reizt dich PR/Kommunikation?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "communication"}, {"id": 84, "type": "scale", "question": "Wie sehr reizt dich Consulting?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "analytical"}, {"id": 85, "type": "scale", "question": "Wie sehr reizt dich klassische Unternehmensberatung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 86, "type": "scale", "question": "Wie sehr reizt dich Recruiting/People?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "people"}, {"id": 87, "type": "scale", "question": "Wie sehr reizt dich Business Development?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "business"}, {"id": 88, "type": "scale", "question": "Wie sehr reizt dich Produktentwicklung?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 89, "type": "scale", "question": "Wie sehr reizt dich Innovation/Trend Research?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "innovation"}, {"id": 90, "type": "scale", "question": "Wie sehr reizt dich Cultural Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "creative"}, {"id": 91, "type": "scale", "question": "Wie sehr reizt dich Event Production?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "experience"}, {"id": 92, "type": "scale", "question": "Wie sehr reizt dich Travel Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "international"}, {"id": 93, "type": "scale", "question": "Wie sehr reizt dich Luxury Brand Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "brand"}, {"id": 94, "type": "scale", "question": "Wie sehr reizt dich Art/Design Management?", "options": ["1 – gar nicht", "2 – etwas", "3 – ziemlich", "4 – sehr"], "dimension": "aesthetic"}, {"id": 95, "type": "scale", "question": "Wie wichtig ist dir, später viele Türen offen zu haben?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "variety"}, {"id": 96, "type": "scale", "question": "Wie wichtig ist dir ein klarer Karrierepfad?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "security"}, {"id": 97, "type": "scale", "question": "Wie wichtig ist dir Prestige deines Arbeitgebers?", "options": ["1 – unwichtig", "2 – etwas", "3 – wichtig", "4 – sehr wichtig"], "dimension": "career"}, {"id": 98, "type": "rank", "question": "Was wäre für dich ein ideales Praktikum?", "options": ["Ich darf viel ausprobieren", "Ich bekomme Verantwortung", "Ich lerne von Top-Leuten", "Ich arbeite an etwas Sichtbarem"], "dimension": "learning"}, {"id": 99, "type": "single", "question": "Welche Aussage beschreibt dich am ehesten?", "options": ["Ich habe viele Interessen", "Ich habe eine klare Leidenschaft", "Ich möchte mich erst ausprobieren", "Ich suche vor allem Stabilität"], "dimension": "variety"}, {"id": 100, "type": "single", "question": "Was wäre schlimmer?", "options": ["Langeweile", "Überforderung", "Unsicherheit", "Zu wenig Anerkennung"], "dimension": "motivation"}],app=document.getElementById('app');
-let s={phase:'intro',i:0,a:{},follow:[],fi:0,profile:null,finalizeJobId:null,chat:[],jobs:[],jobsLoading:false,jobsLoaded:false,jobsError:''};
+const STATE_KEY='doroCD',SAVED_JOBS_KEY='dorettchen_saved_jobs';
+let s={phase:'intro',i:0,a:{},follow:[],fi:0,profile:null,finalizeJobId:null,chat:[],jobs:[],jobsLoading:false,jobsLoaded:false,jobsError:'',jobsJobId:null,jobsAppend:false};
+let savedJobs=[];
 try{
+  savedJobs=JSON.parse(localStorage.getItem(SAVED_JOBS_KEY)||'[]');
+  if(!Array.isArray(savedJobs))savedJobs=[];
   if(new URLSearchParams(location.search).get('reset')==='1'){
-    localStorage.removeItem('doroCD');
+    localStorage.removeItem(STATE_KEY);
     history.replaceState({},'',location.pathname);
   }
 
-  const x=JSON.parse(localStorage.getItem('doroCD')||'null');
+  const x=JSON.parse(localStorage.getItem(STATE_KEY)||'null');
   if(x)s={...s,...x};
 }catch{}
-const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
+const updateSavedCount=()=>{const el=document.getElementById('savedJobsCount');if(el)el.textContent=savedJobs.length};
+const save=()=>{try{localStorage.setItem(STATE_KEY,JSON.stringify(s))}catch{}};
+const saveSavedJobs=()=>{try{localStorage.setItem(SAVED_JOBS_KEY,JSON.stringify(savedJobs));updateSavedCount()}catch{}};
   function resetTestData(){
 
   const ok = confirm(
@@ -598,7 +608,7 @@ const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
 
   if(!ok) return;
 
-  localStorage.removeItem('doroCD');
+  localStorage.removeItem(STATE_KEY);
 
   s = {
 
@@ -623,6 +633,8 @@ const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
     jobsLoading:false,
 
     jobsLoaded:false,
+    jobsJobId:null,
+    jobsAppend:false,
 
     chatLoading:false
 
@@ -633,8 +645,8 @@ const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
 }
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function intro(){app.innerHTML=`<div class="hero"><div class="tiny">DORO · CAREER DISCOVERY</div><h1>Find your direction.</h1><p class="muted">100 Fragen zu Interessen, Arbeitsweise, Menschen, Kreativität, Karriere, Lebensstil und echten Trade-offs. Danach folgt ein persönlicher Deep Dive und eine intensive Career Map.</p><div class="chips"><span>100 Fragen</span><span>Rankings</span><span>Zurück</span><span>Deep Dive</span></div><p><button class="btn" onclick="start()">Journey starten</button></p><p><button class="btn alt" onclick="resetTestData()">Testdaten löschen & neu starten</button></p></div>`}
-function start(){s={phase:'quiz',i:0,a:{},follow:[],fi:0,profile:null,finalizeJobId:null,chat:[]};save();render()}
-function render(){if(s.phase==='analysis'&&s.finalizeJobId)return finalize();({intro,quiz,second,analysis:analyze,final,chat})[s.phase]()}
+function start(){s={phase:'quiz',i:0,a:{},follow:[],fi:0,profile:null,finalizeJobId:null,chat:[],jobs:[],jobsLoading:false,jobsLoaded:false,jobsError:'',jobsJobId:null,jobsAppend:false};save();render()}
+function render(){updateSavedCount();if(s.phase==='analysis'&&s.finalizeJobId)return finalize();({intro,quiz,second,analysis:analyze,final,chat,saved:showSavedJobs,motivation:motivationPage})[s.phase]()}
 function quiz(){let q=Q[s.i],a=s.a[q.id],body=q.type==='rank'?q.options.map((o,n)=>`<div class="rank"><span class="rankLabel">${esc(o)}</span><div class="rankBtns">${[1,2,3,4].map(v=>`<button class="rankNum ${a?.[n]==v?'sel':''}" onclick="setRank(${n},${v})">${v}</button>`).join('')}</div></div>`).join(''):q.options.map((o,n)=>`<button class="opt ${a===n?'sel':''}" onclick="pick(${n})">${esc(o)}</button>`).join('');
 app.innerHTML=`<div class="row"><span class="tiny">FRAGE ${s.i+1} / ${Q.length}</span><span class="muted">${Math.round(s.i/Q.length*100)}%</span></div><div class="bar"><i style="width:${s.i/Q.length*100}%"></i></div><div class="card"><h2 class="q">${esc(q.question)}</h2>${body}<div class="row" style="margin-top:22px"><button class="btn alt" onclick="back()" ${s.i?'':'disabled'}>← Zurück</button><button class="btn" onclick="${q.type==='rank'?'rankNext()':'next()'}">${s.i===Q.length-1?'Analyse starten':'Weiter →'}</button></div></div>`}
 function pick(n){s.a[Q[s.i].id]=n;next()}
@@ -769,145 +781,101 @@ function final(){
   function radar(){return dimensions.length?`<svg viewBox="-60 -25 520 430" class="radarSvg" role="img" aria-label="Career DNA Diagram"><polygon points="${poly(160)}" fill="none" stroke="#dcd8d0"/><polygon points="${poly(120)}" fill="none" stroke="#e9e5de"/><polygon points="${poly(80)}" fill="none" stroke="#efebe5"/>${axisLines()}<polygon points="${dimensions.map((d,i)=>{const q=point(i,d.score);return`${q.x},${q.y}`}).join(' ')}" fill="#171717" fill-opacity=".09" stroke="#171717" stroke-width="2.5"/>${dots()}${labels()}</svg>`:'<div class="muted">Noch keine Career DNA verfügbar.</div>'}
   function axisBars(){return axes.map(x=>`<div class="axisCard"><div class="axisTop"><span>${esc(x.name||'')}</span><b>${clamp(x.score)}</b></div><div class="axisLine"><i style="width:${clamp(x.score)}%"></i></div></div>`).join('')}
   function jobCards(){
-    if(s.jobsLoading)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">AKTUELLE PRAKTIKA</div><h2>Wir suchen gerade passende Stellen.</h2></div><div class="card jobsLoading"><div class="jobTyping"><i></i><i></i><i></i></div><strong>Stellen werden gerade zusammengesucht</strong><p class="muted">Berlin steht zuerst auf der Liste – dazu kommen passende europäische Optionen.</p></div></section>`;
-    if(s.jobs.length)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">AKTUELLE PRAKTIKA</div><h2>Was gerade konkret interessant sein könnte</h2><p class="sectionLead">Diese Stellen wurden anhand deines Profils gesucht. „Könnte passen“ beschreibt eine begründete Überschneidung mit deinen Antworten, keine endgültige Empfehlung.</p></div><div class="jobsGrid">${s.jobs.map((j,i)=>`<article class="card jobCard"><div class="jobMeta"><span>${esc(j.location||'')}</span><span>${esc(j.type||'Praktikum')}</span></div><h3>${esc(j.title||'')}</h3><div class="jobCompany">${esc(j.company||'')}</div><p>${esc(j.description||'')}</p><div class="jobWhy"><b>Warum interessant</b><p>${esc(j.why_fit||'')}</p></div>${j.deadline?`<div class="jobDeadline">${esc(j.deadline)}</div>`:''}${j.url?`<a class="btn jobBtn" href="${esc(j.url)}" target="_blank" rel="noopener">Stelle ansehen ↗</a>`:''}</article>`).join('')}</div></section>`;
-    if(s.jobsError)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">AKTUELLE PRAKTIKA</div><h2>Die Stellensuche ist gerade nicht durchgelaufen.</h2><p class="sectionLead">${esc(s.jobsError)}</p></div><div class="card jobStart"><button class="btn" onclick="loadJobs()">Erneut versuchen →</button></div></section>`;
-    return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">AKTUELLE PRAKTIKA</div><h2>Jetzt wird es konkret.</h2><p class="sectionLead">Wir können aktuelle Stellen anhand deiner Career Map durchsuchen.</p></div><div class="card jobStart"><button class="btn" onclick="loadJobs()">Aktuelle Stellen suchen →</button></div></section>`;
+    const results=s.jobs.length?`<div class="jobsGrid gridCentered">${s.jobs.map(jobCardMarkup).join('')}</div>`:'';
+    if(s.jobsLoading)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">LIVE-JOBSUCHE</div><h2>${s.jobs.length?'Weitere Stellen werden gesucht.':'Live-Suche läuft.'}</h2><p class="sectionLead">Wir prüfen konkrete aktuelle Ausschreibungen zuerst passend zu deinem Profil und Standort, danach in Europa.</p></div>${results}<div class="card jobsLoading jobStatus"><div class="jobTyping"><i></i><i></i><i></i></div><strong>Aktuelle Karriereseiten werden durchsucht</strong></div></section>`;
+    if(s.jobs.length)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">LIVE-JOBSUCHE</div><h2>Aktuelle Stellen für deine Career Map</h2><p class="sectionLead">Jeder Treffer stammt aus dem letzten Live-Suchlauf. Prüfe auf der verlinkten Ausschreibung bitte nochmals Verfügbarkeit und Frist.</p></div>${results}<div class="jobsFooter"><button class="btn alt" onclick="loadMoreJobs()">Weitere Stellen finden →</button></div></section>`;
+    if(s.jobsError)return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">LIVE-JOBSUCHE</div><h2>Die Stellensuche konnte gerade nicht abgeschlossen werden.</h2><p class="sectionLead">${esc(s.jobsError)}</p></div><div class="card jobStart"><button class="btn" onclick="loadJobs()">Erneut versuchen →</button></div></section>`;
+    return `<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">LIVE-JOBSUCHE</div><h2>Jetzt wird es konkret.</h2><p class="sectionLead">Starte eine echte Websuche nach aktuell ausgeschriebenen Stellen, individuell aus deiner vollständigen Career Map abgeleitet.</p></div><div class="card jobStart"><button class="btn" onclick="loadJobs()">Aktuelle Stellen suchen →</button></div></section>`;
   }
   app.innerHTML=`<div class="careerMap">
     <section class="personalHero"><div class="tiny">HEY DORO · DEIN REPORT</div><h1>Erstmal: Danke, dass du dir die Zeit genommen hast.</h1><p>${esc(profile.summary||dna.description||'Aus deinen Antworten ist ein ziemlich vielseitiges Bild entstanden. Hier geht es nicht darum, dich in einen Beruf zu stecken, sondern sichtbar zu machen, welche Arbeitswelten, Themen und Spannungen dich wirklich interessieren könnten.')}</p><div class="heroNote"><span>100 Antworten</span><span>Deep Dive</span><span>Career DNA</span><span>konkrete Richtungen</span></div></section>
     <section class="careerSection dnaSection"><div class="careerSectionHeader"><div class="tiny">DEIN PROFIL AUF EINEN BLICK</div><h2>Career DNA</h2><p class="sectionLead">Nicht ein einzelner Beruf beschreibt dich. Spannender ist die Kombination deiner stärksten Muster.</p></div><div class="dnaLayout2"><div class="card dnaVisual2">${radar()}<div class="radarCaption"><b>${esc(dna.title||profile.title||'Dein Profil')}</b><span>${esc(dna.description||'')}</span></div></div><div class="dnaLegend2">${dimensions.map(d=>`<article class="dnaItem2"><div class="dnaItemTop"><span>${esc(d.name||'')}</span><b>${Math.round(clamp(d.score))}</b></div><div class="dnaTrack"><i style="width:${clamp(d.score)}%"></i></div><p>${esc(d.summary||d.short_description||'')}</p></article>`).join('')}</div></div></section>
     ${axes.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">DIE SPANNUNGEN DAZWISCHEN</div><h2>Du bist nicht nur eine Skala</h2><p class="sectionLead">Diese Achsen zeigen, wie sich verschiedene Seiten deines Profils zueinander verhalten.</p></div><div class="axisGrid">${axisBars()}</div></section>`:''}
     <section class="careerSection"><div class="careerSectionHeader"><div class="tiny">DAS GESAMTBILD</div><h2>Was hinter dem Profil steckt</h2></div><div class="profileIntroGrid"><div class="card introStatement"><div class="tiny">IN EINEM SATZ</div><h3>${esc(profile.title||dna.title||'Dein Profil')}</h3><p>${esc(profile.summary||'')}</p></div><div class="card introDetail"><div class="tiny">ETWAS GENAUER</div><p>${esc(profile.description||dna.description||'')}</p></div></div></section>
-    ${strengths.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">PERSÖNLICHE MUSTER</div><h2>Was dich ausmacht</h2></div><div class="profileGrid2">${strengths.map((x,i)=>`<article class="card profileCard2"><div class="cardIndex">0${i+1}</div><h3>${esc(x.title||'')}</h3><div class="summary">${esc(x.summary||'')}</div><p>${esc(x.description||'')}</p></article>`).join('')}</div></section>`:''}
-    ${reveals.length?`<section class="careerSection revealSection"><div class="careerSectionHeader"><div class="tiny">INTERESSANTE SPANNUNGEN</div><h2>Du hast dich gerade selbst verraten.</h2><p class="sectionLead">Die interessantesten Stellen sind oft nicht die offensichtlichsten – sondern die kleinen Widersprüche.</p></div><div class="revealGrid">${reveals.map((x,i)=>`<article class="card revealCard2"><div class="revealNumber">${String(i+1).padStart(2,'0')}</div><h3>${esc(x.title||'')}</h3><div class="revealObservation">${esc(x.observation||'')}</div><p>${esc(x.interpretation||'')}</p></article>`).join('')}</div></section>`:''}
-    ${directions.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">MÖGLICHE FELDER</div><h2>Richtungen zum Erkunden</h2><p class="sectionLead">Keine endgültigen Antworten. Eher berufliche Welten, in denen du deine Interessen ausprobieren kannst.</p></div><div class="directionGrid2">${directions.map((x,i)=>`<article class="card directionCard2"><div class="directionTag">0${i+1}</div><h3>${esc(x.title||'')}</h3><div class="directionSummary">${esc(x.summary||'')}</div><p>${esc(x.description||'')}</p><div class="directionSplit">${x.why_it_fits?`<div><b>Warum interessant</b><p>${esc(x.why_it_fits)}</p></div>`:''}${x.watch_out?`<div><b>Genauer hinschauen</b><p>${esc(x.watch_out)}</p></div>`:''}</div></article>`).join('')}</div></section>`:''}
+    ${strengths.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">PERSÖNLICHE MUSTER</div><h2>Was dich ausmacht</h2></div><div class="profileGrid2 gridCentered">${strengths.map((x,i)=>`<article class="card profileCard2"><div class="cardIndex">0${i+1}</div><h3>${esc(x.title||'')}</h3><div class="summary">${esc(x.summary||'')}</div><p>${esc(x.description||'')}</p></article>`).join('')}</div></section>`:''}
+    ${reveals.length?`<section class="careerSection revealSection"><div class="careerSectionHeader"><div class="tiny">INTERESSANTE SPANNUNGEN</div><h2>Du hast dich gerade selbst verraten.</h2><p class="sectionLead">Die interessantesten Stellen sind oft nicht die offensichtlichsten – sondern die kleinen Widersprüche.</p></div><div class="revealGrid gridCentered">${reveals.map((x,i)=>`<article class="card revealCard2"><div class="revealNumber">${String(i+1).padStart(2,'0')}</div><h3>${esc(x.title||'')}</h3><div class="revealObservation">${esc(x.observation||'')}</div><p>${esc(x.interpretation||'')}</p></article>`).join('')}</div></section>`:''}
+    ${directions.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">MÖGLICHE FELDER</div><h2>Richtungen zum Erkunden</h2><p class="sectionLead">Keine endgültigen Antworten. Eher berufliche Welten, in denen du deine Interessen ausprobieren kannst.</p></div><div class="directionGrid2 gridCentered">${directions.map((x,i)=>`<article class="card directionCard2"><div class="directionTag">0${i+1}</div><h3>${esc(x.title||'')}</h3><div class="directionSummary">${esc(x.summary||'')}</div><p>${esc(x.description||'')}</p><div class="directionSplit">${x.why_it_fits?`<div><b>Warum interessant</b><p>${esc(x.why_it_fits)}</p></div>`:''}${x.watch_out?`<div><b>Genauer hinschauen</b><p>${esc(x.watch_out)}</p></div>`:''}</div></article>`).join('')}</div></section>`:''}
     ${environment.environment_title?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">ARBEITSUMFELD</div><h2>Wo dein Profil Raum bekommen könnte</h2></div><div class="environmentGrid"><div class="card environmentMain"><div class="tiny">MÖGLICHE ARBEITSWELT</div><h3>${esc(environment.environment_title)}</h3><p>${esc(environment.environment_summary||'')}</p></div><div class="card environmentDetail"><p>${esc(environment.environment_description||'')}</p></div></div></section>`:''}
-    ${nextSteps.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">ORIENTIERUNG</div><h2>Wie du jetzt weitersuchen kannst</h2></div><div class="nextGrid2">${nextSteps.map((x,i)=>`<article class="card nextCard2"><div class="cardIndex">0${i+1}</div><h3>${esc(typeof x==='string'?x:(x.title||''))}</h3>${typeof x==='object'&&x.description?`<p>${esc(x.description)}</p>`:''}</article>`).join('')}</div></section>`:''}
+    ${nextSteps.length?`<section class="careerSection"><div class="careerSectionHeader"><div class="tiny">ORIENTIERUNG</div><h2>Wie du jetzt weitersuchen kannst</h2></div><div class="nextGrid2 gridCentered">${nextSteps.map((x,i)=>`<article class="card nextCard2"><div class="cardIndex">0${i+1}</div><h3>${esc(typeof x==='string'?x:(x.title||''))}</h3>${typeof x==='object'&&x.description?`<p>${esc(x.description)}</p>`:''}</article>`).join('')}</div></section>`:''}
     ${jobCards()}
     <section class="card careerCTA"><div class="tiny">UND JETZT?</div><h2>Du musst dich noch nicht festlegen.</h2><p class="muted">Die nächste sinnvolle Frage ist nicht „Welchen Beruf mache ich?“, sondern „Welche dieser Welten möchte ich als Nächstes wirklich kennenlernen?“</p><button class="btn" onclick="s.phase='chat';render()">Mit dem Career Advisor sprechen →</button></section>
   </div>`;
-  if(!s.jobsLoaded&&!s.jobsLoading)setTimeout(loadJobs,80);
+  if(s.jobsJobId&&!jobsPollingActive)setTimeout(()=>resumeJobsPolling(),80);
 }
+function jobIdentity(j){return `${String(j.url||'').trim().toLowerCase()}|${String(j.company||'').trim().toLowerCase()}|${String(j.title||'').trim().toLowerCase()}`}
+function isSavedJob(j){return savedJobs.some(x=>jobIdentity(x)===jobIdentity(j))}
+function jobCardMarkup(j){
+  const saved=isSavedJob(j),encoded=encodeURIComponent(jobIdentity(j));
+  return `<article class="card jobCard"><button class="saveJobBtn" onclick="toggleSavedJob('${encoded}')" aria-label="${saved?'Aus Merkliste entfernen':'Stelle merken'}" aria-pressed="${saved}">${saved?'♥':'♡'}</button><div class="jobMeta"><span>${esc(j.location)}</span><span>${esc(j.type)}</span></div><h3>${esc(j.title)}</h3><div class="jobCompany">${esc(j.company)}</div><p>${esc(j.description)}</p><div class="jobWhy"><b>Warum passt das zu dir?</b><p>${esc(j.why_fit)}</p></div><div class="jobActions"><a class="btn jobBtn" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Zur Ausschreibung ↗</a><button class="btn alt" onclick="openMotivation('${encoded}')">Motivationsschreiben</button><span class="jobSource">Quelle: ${esc(j.source)}</span></div></article>`;
+}
+function findJob(identity){return [...(s.jobs||[]),...savedJobs].find(j=>jobIdentity(j)===decodeURIComponent(identity))}
+function toggleSavedJob(identity){
+  const key=decodeURIComponent(identity),index=savedJobs.findIndex(j=>jobIdentity(j)===key);
+  if(index>=0)savedJobs.splice(index,1);else{const job=findJob(identity);if(job)savedJobs.push({...job,savedAt:new Date().toISOString()})}
+  saveSavedJobs();render();
+}
+function showSavedJobs(){
+  s.phase='saved';save();updateSavedCount();
+  app.innerHTML=`<div class="savedPage"><div class="savedHeader"><div><div class="tiny">DEINE MERKLISTE</div><h1>Gespeicherte Stellen</h1><p class="muted">Diese vollständigen Jobdaten bleiben unabhängig von deinem Test und einem Neustart gespeichert.</p></div><button class="btn alt" onclick="returnFromSaved()">${s.profile?'Zur Career Map':'Zurück'} →</button></div>${savedJobs.length?`<div class="jobsGrid gridCentered">${savedJobs.map(jobCardMarkup).join('')}</div>`:`<div class="card emptySaved"><h2>Noch keine Stellen gemerkt.</h2><p class="muted">Mit dem Herz an einer Live-Stelle kannst du sie hier dauerhaft ablegen.</p></div>`}</div>`;
+}
+function returnFromSaved(){s.phase=s.profile?'final':'intro';save();render()}
+function openMotivation(identity){const job=findJob(identity);if(!job)return;s.motivationJob=job;s.motivationReturn=s.phase;s.motivationText='';s.motivationNote='';s.phase='motivation';save();render()}
+function motivationPage(){
+  const j=s.motivationJob||{};
+  app.innerHTML=`<div class="motivationPage"><button class="btn alt" onclick="backFromMotivation()">← Zurück</button><div class="tiny" style="margin-top:28px">BEWERBUNG VORBEREITEN</div><h1>${esc(j.title||'Motivationsschreiben')}</h1><div class="jobCompany">${esc(j.company)}</div><div class="motivationGrid"><div class="card motivationSide"><div class="tiny">DIE STELLE</div><p>${esc(j.description)}</p><div class="jobWhy"><b>Warum passt das zu dir?</b><p>${esc(j.why_fit)}</p></div><div class="tiny" style="margin-top:24px">DEIN PERSÖNLICHER INPUT</div><textarea id="motivationNote" class="motivationText" style="min-height:150px" placeholder="Was reizt dich persönlich an dieser Stelle?">${esc(s.motivationNote||'')}</textarea><button class="btn" style="margin-top:10px" onclick="generateMotivation()">Motivationsschreiben erstellen →</button></div><div class="card motivationSide"><div class="tiny">DEIN ENTWURF</div>${s.motivationLoading?`<div class="motivationLoading">Dein Schreiben wird individuell formuliert…</div>`:`<textarea id="motivationText" class="motivationText" placeholder="Hier erscheint dein Entwurf.">${esc(s.motivationText||'')}</textarea><div class="motivationTools"><button class="btn alt" onclick="copyMotivation()">Text kopieren</button></div>`}</div></div></div>`;
+}
+function backFromMotivation(){s.phase=s.motivationReturn==='saved'?'saved':(s.profile?'final':'intro');save();render()}
+async function copyMotivation(){const text=document.getElementById('motivationText')?.value||'';if(!text)return;try{await navigator.clipboard.writeText(text)}catch{prompt('Text kopieren:',text)}}
+async function generateMotivation(){
+  if(s.motivationLoading)return;const j=s.motivationJob,note=(document.getElementById('motivationNote')?.value||'').trim();s.motivationNote=note;s.motivationLoading=true;save();render();
+  const message=`Erstelle ein glaubwürdiges deutsches Motivationsschreiben (250–350 Wörter) für ${j.title} bei ${j.company}. Erfinde keine Erfahrungen. Nutze Career Map und Antworten. Stelle: ${j.description}. Profilbezug: ${j.why_fit}. Persönlicher Hinweis: ${note||'Keiner'}. Keine Meta-Erklärung.`;
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,profile:s.profile,answers:s.a,history:[]})});const d=await r.json();if(!r.ok)throw Error(d.error);s.motivationText=d.text||''}catch(e){s.motivationText='Das Schreiben konnte gerade nicht erstellt werden. Bitte versuche es erneut.'}s.motivationLoading=false;save();render();
+}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+let jobsPollingActive=false;
 async function loadJobs(append=false){
-  if(s.jobsLoading)return;
-  if(
-    !append &&
-    s.jobsLoaded &&
-    Array.isArray(s.jobs) &&
-    s.jobs.length
-  )return;
-
-  s.jobsLoading=true;
-  s.jobsError='';
-  save();
-  render();
-
-  const diagnosticFlowId=(globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  const diagnosticLog=(stage,details={})=>console.info('[JOBS_DIAGNOSTIC]',{
-    flowId:diagnosticFlowId,
-    stage,
-    at:new Date().toISOString(),
-    ...details
-  });
-
+  if(s.jobsLoading||s.jobsJobId)return;
+  s.jobsLoading=true;s.jobsError='';s.jobsAppend=append;save();render();
   try{
-    const existing=Array.isArray(s.jobs)?s.jobs:[];
-    const exclude=existing.map(j=>j.url).filter(Boolean);
-
-    let startResponse=null;
-    let lastError='';
-
-    for(let attempt=0;attempt<3;attempt++){
-      try{
-        diagnosticLog('jobs_request_started',{attempt:attempt+1});
-        const r=await fetch('/api/jobs',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','X-Diagnostic-Flow-Id':diagnosticFlowId},
-          body:JSON.stringify({profile:s.profile,exclude,diagnosticFlowId})
-        });
-        const responseText=await r.text();
-        diagnosticLog('jobs_response_received',{httpStatus:r.status,ok:r.ok,body:responseText});
-        if(!r.ok)throw Error(responseText||`HTTP ${r.status}`);
-        startResponse=JSON.parse(responseText);
-        diagnosticLog('jobs_response_parsed',{jobId:startResponse.jobId||null,status:startResponse.status||null});
-        break;
-      }catch(e){
-        diagnosticLog('jobs_request_failed',{attempt:attempt+1,error:e.message});
-        lastError=e.message||'Start der Stellensuche fehlgeschlagen.';
-        if(attempt<2)await new Promise(resolve=>setTimeout(resolve,1500));
-      }
-    }
-
-    if(!startResponse)throw Error(lastError||'Die Stellensuche konnte nicht gestartet werden.');
-
-    let result=null;
-
-    if(startResponse.jobId){
-      diagnosticLog('polling_started',{jobId:startResponse.jobId});
-      for(let attempt=0;attempt<300;attempt++){
-        await new Promise(resolve=>setTimeout(resolve,2000));
-
-        let statusResponse=null;
-        for(let retry=0;retry<3;retry++){
-          try{
-            const statusUrl='/api/jobs-status?jobId='+encodeURIComponent(startResponse.jobId)+'&diagnosticFlowId='+encodeURIComponent(diagnosticFlowId);
-            diagnosticLog('status_request_started',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1});
-            const r=await fetch(statusUrl,{cache:'no-store',headers:{'X-Diagnostic-Flow-Id':diagnosticFlowId}});
-            const responseText=await r.text();
-            diagnosticLog('status_response_received',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1,httpStatus:r.status,ok:r.ok,body:responseText});
-            if(!r.ok)throw Error(responseText||`HTTP ${r.status}`);
-            statusResponse=JSON.parse(responseText);
-            break;
-          }catch(e){
-            diagnosticLog('status_request_failed',{jobId:startResponse.jobId,pollAttempt:attempt+1,retry:retry+1,error:e.message});
-            if(retry<2)await new Promise(resolve=>setTimeout(resolve,1000));
-          }
-        }
-
-        if(!statusResponse)continue;
-        if(statusResponse.status==='complete'){
-          result=statusResponse.result;
-          diagnosticLog('completed_result_received',{jobId:startResponse.jobId,jobCount:Array.isArray(result?.jobs)?result.jobs.length:null});
-          break;
-        }
-        if(statusResponse.status==='error'){
-          throw Error(statusResponse.error||'Die Stellensuche ist fehlgeschlagen.');
-        }
-      }
-
-      if(!result)throw Error('Die Stellensuche dauert ungewöhnlich lange. Bitte versuche es noch einmal.');
-    }else{
-      result=startResponse;
-    }
-
-    const incoming=Array.isArray(result?.jobs)?result.jobs:[];
-    const seen=new Set(existing.map(j=>String(j.url||`${j.company||''}|${j.title||''}`)));
-
-    const fresh=incoming.filter(j=>{
-      const key=String(j.url||`${j.company||''}|${j.title||''}`);
-      if(!key||seen.has(key))return false;
-      seen.add(key);
-      return true;
-    });
-
-    s.jobs=append?[...existing,...fresh]:fresh;
-    diagnosticLog('jobs_render_state_ready',{incomingCount:incoming.length,freshCount:fresh.length,totalCount:s.jobs.length});
-    s.jobsLoaded=true;
-    if(!s.jobs.length)s.jobsError='Es wurden gerade keine konkreten Ausschreibungen gefunden.';
-  }catch(e){
-    diagnosticLog('flow_failed',{error:e.message});
-    console.error('JOB SEARCH ERROR:',e);
-    s.jobsError=e.message||'Die Stellensuche konnte gerade nicht geladen werden.';
-    if(!append)s.jobs=[];
-    s.jobsLoaded=true;
-  }
-
-  s.jobsLoading=false;
-  save();
-  render();
+    const exclude=(s.jobs||[]).map(j=>({url:j.url,company:j.company,title:j.title}));
+    const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile:s.profile,answers:s.a,deepDive:s.follow,exclude})});
+    const data=await r.json();
+    if(!r.ok||!data.jobId)throw Error(data.error||'Die Live-Suche konnte nicht gestartet werden.');
+    s.jobsJobId=data.jobId;save();
+    await resumeJobsPolling();
+  }catch(e){finishJobsError(e.message)}
 }
-
+async function resumeJobsPolling(){
+  if(!s.jobsJobId||jobsPollingActive)return;
+  jobsPollingActive=true;
+  s.jobsLoading=true;save();render();
+  let networkFailures=0;
+  for(let poll=0;poll<90&&s.jobsJobId;poll++){
+    await wait(poll?3000:500);
+    try{
+      const r=await fetch('/api/jobs-status?jobId='+encodeURIComponent(s.jobsJobId),{cache:'no-store'});
+      const data=await r.json();
+      if(!r.ok)throw Error(data.error||`Statusfehler (${r.status})`);
+      networkFailures=0;
+      if(data.status==='queued'||data.status==='in_progress')continue;
+      if(data.status==='complete'||data.status==='completed'){jobsPollingActive=false;return finishJobsSuccess(data.result?.jobs||[])}
+      if(['failed','cancelled','incomplete','error'].includes(data.status))throw Error(data.error||'Die Live-Suche wurde nicht abgeschlossen.');
+    }catch(e){
+      if(++networkFailures<4)continue;
+      jobsPollingActive=false;return finishJobsError(e.message);
+    }
+  }
+  jobsPollingActive=false;
+  if(s.jobsJobId)finishJobsError('Die Stellensuche dauert ungewöhnlich lange. Bitte versuche es erneut.');
+}
+function finishJobsSuccess(incoming){
+  const existing=Array.isArray(s.jobs)?s.jobs:[],seen=new Set(existing.map(jobIdentity));
+  const fresh=incoming.filter(j=>j&&j.url&&j.title&&j.company&&!seen.has(jobIdentity(j))&&seen.add(jobIdentity(j)));
+  s.jobs=s.jobsAppend?[...existing,...fresh]:fresh;s.jobsLoaded=true;s.jobsLoading=false;s.jobsJobId=null;s.jobsAppend=false;
+  if(!s.jobs.length)s.jobsError='Es wurden derzeit keine ausreichend verlässlichen aktuellen Ausschreibungen gefunden.';
+  save();render();
+}
+function finishJobsError(message){s.jobsError=message||'Die Stellensuche konnte gerade nicht abgeschlossen werden.';s.jobsLoading=false;s.jobsLoaded=true;s.jobsJobId=null;s.jobsAppend=false;save();render()}
 function loadMoreJobs(){return loadJobs(true)}
 
 function chat(){
