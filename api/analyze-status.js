@@ -1,28 +1,8 @@
-const REDIS_URL = process.env.STORAGE_KV_REST_API_URL;
-const REDIS_TOKEN = process.env.STORAGE_KV_REST_API_TOKEN;
+import OpenAI from "openai";
 
-async function redisGet(key) {
-  const response = await fetch(
-    `${REDIS_URL}/get/${encodeURIComponent(key)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${REDIS_TOKEN}`
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Redis GET failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (!data.result) {
-    return null;
-  }
-
-  return JSON.parse(data.result);
-}
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -32,7 +12,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const jobId = req.query.jobId;
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY fehlt");
+    }
+
+    const jobId = req.query?.jobId;
 
     if (!jobId) {
       return res.status(400).json({
@@ -40,19 +24,56 @@ export default async function handler(req, res) {
       });
     }
 
-    const job = await redisGet(`career-job:${jobId}`);
+    const response = await client.responses.retrieve(jobId);
 
-    if (!job) {
-      return res.status(404).json({
-        error: "Job not found"
+    const status = response.status;
+
+    if (status === "completed") {
+      let result;
+
+      try {
+        result = JSON.parse(response.output_text || "");
+      } catch {
+        return res.status(500).json({
+          status: "error",
+          error:
+            "Die Analyse wurde abgeschlossen, konnte aber nicht als gültiges JSON gelesen werden."
+        });
+      }
+
+      return res.status(200).json({
+        status: "complete",
+        result
       });
     }
 
-    return res.status(200).json(job);
+    if (
+      status === "failed" ||
+      status === "cancelled" ||
+      status === "incomplete"
+    ) {
+      const message =
+        response.error?.message ||
+        response.incomplete_details?.reason ||
+        `Analyse ${status}.`;
+
+      return res.status(200).json({
+        status: "error",
+        error: message
+      });
+    }
+
+    return res.status(200).json({
+      status: status || "in_progress"
+    });
 
   } catch (error) {
+    console.error("ANALYZE STATUS ERROR:", error);
+
     return res.status(500).json({
-      error: error.message
+      status: "error",
+      error:
+        error.message || "Status konnte nicht abgefragt werden."
     });
   }
 }
