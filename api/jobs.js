@@ -23,16 +23,22 @@ WICHTIG:
 - Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
 - Bevorzuge direkte Bewerbungsseiten.
 - Seriöse Jobplattformen sind ebenfalls erlaubt.
-- Führe genau eine fokussierte Recherche durch. Sammle Kandidaten effizient und ohne redundante Suchen. Öffne nur vielversprechende Treffer, prüfe dabei die KONKRETE Ausschreibungsseite; ein Suchsnippet allein genügt nie. Verwende bereits gefundene Fakten wieder, statt dieselbe Information erneut zu suchen.
+- Führe genau eine fokussierte Recherche mit höchstens drei Suchlevels durch. Sammle Kandidaten effizient und ohne redundante Suchen. Öffne nur vielversprechende Treffer und jede URL höchstens einmal; prüfe dabei die KONKRETE Ausschreibungsseite, ein Suchsnippet allein genügt nie.
 - Wenn eine Stelle geschlossen, abgelaufen, entfernt oder nicht mehr bewerbbar ist, gib sie nicht zurück.
 - Bevorzuge direkte Unternehmensseiten und ATS wie Greenhouse, Lever, Workday, Personio, JOIN und SmartRecruiters.
 - Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
-- Suche mehrere Richtungen, die zum Career-Profil passen.
+- Primäre Suchbasis ist search_strategy.careerDirections. Sie stammt direkt aus dem Career-Map-Bereich „Richtungen zum Erkunden“. Verwende JEDE Richtung.
+- Erzeuge vor der Websuche pro Richtung eine kompakte, kontextspezifische Jobtitle-Familie: nahe Einstiegsversionen, echte Synonyme und verwandte Rollen. Wiederhole nicht bloß den exakten Richtungstitel und nutze keine statische Universalliste.
+- Arbeite die Search Matrix aus Career Direction × abgeleiteter Jobtitle-Familie × Standort in dieser Reihenfolge ab: Level 1 nahe Rollen in Berlin; Level 2 verwandte Familien in Berlin und anschließend Europa; Level 3 angrenzende Einstiegsrollen mit denselben Fähigkeiten/Brancheninteressen europaweit. Stoppe, sobald das Ergebnisziel erreicht ist.
+- Zulässig sind Internship/Intern/Praktikum/Praktikant-in, fachlich passende Trainees, Assistant, Coordinator, Junior, Working Student/Werkstudent und Entry Level. Schließe Senior-, Lead-, Head- und Rollen mit offensichtlich mehrjähriger Erfahrung aus.
 - Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
 - Priorisiere Berlin, fülle aber zügig mit passenden europäischen Städten auf (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp), wenn dort nicht genug hochwertige Treffer verfügbar sind.
 - Verwende das aktuelle Datum.
 - Ein belastbares Veröffentlichungs-/Aktualisierungsdatum darf höchstens 30 Tage zurückliegen. Erfinde kein Datum. Fehlt es, muss eine aktive Bewerbungsfunktion eindeutig sichtbar sein.
 - Liefere 3–5 informative Sätze zu konkreten Aufgaben, Team/Projekt und Branche sowie einen spezifischen Profilbezug, ausschließlich aus vorhandenen Profildaten.
+
+SEARCH-DIAGNOSTIK
+Dokumentiere im JSON wahrheitsgemäß die tatsächlich verwendeten Career Directions, erzeugten Titel je Richtung, durchsuchten Städte und ausgeführten Webqueries. candidatesFound zählt alle gesichteten konkreten Ausschreibungen vor Auswahl, duplicatesRemoved nur identische URL bzw. exakt Unternehmen+Titel+Ort, rejectedByCareerFit die vor der Server-Verifikation fachlich verworfenen Kandidaten. Keine Schätzwerte erfinden.
 
 BEREITS GEFUNDENE STELLEN
 Die Ausschlussliste beschreibt ausschließlich konkrete Stellenidentitäten. Schließe primär dieselbe normalisierte URL aus, sekundär exakt dieselbe Kombination aus Unternehmen, Titel und Standort. Unternehmen, Domain, Stadt, Jobfamilie oder Career Direction bleiben ausdrücklich durchsuchbar. Eine andere Stelle beim selben Unternehmen ist erlaubt.
@@ -84,9 +90,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ status: "error", code: "invalid_profile", message: "Für die Live-Suche wird eine fertige Career Map benötigt." });
     }
 
-    const searchProfile = buildSearchProfile(profile);
-    const exclude = compactExclusions(req.body?.exclude);
     const append = req.body?.append === true;
+    const searchProfile = buildSearchProfile(profile, { append });
+    const exclude = compactExclusions(req.body?.exclude);
     const searchRound = append && Number(req.body?.searchRound) === 2 ? 2 : 1;
 
     const today = new Date().toISOString().slice(0, 10);
@@ -182,11 +188,38 @@ export default async function handler(req, res) {
                     "fit_score"
                   ]
                 }
+              },
+              search_diagnostics: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  careerDirectionsUsed: { type: "array", items: { type: "string" } },
+                  generatedJobTitleFamilies: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        direction: { type: "string" },
+                        titles: { type: "array", items: { type: "string" } }
+                      },
+                      required: ["direction", "titles"]
+                    }
+                  },
+                  citiesSearched: { type: "array", items: { type: "string" } },
+                  queriesExecuted: { type: "array", items: { type: "string" } },
+                  searchLevelsUsed: { type: "integer", minimum: 1, maximum: 3 },
+                  candidatesFound: { type: "integer", minimum: 0 },
+                  duplicatesRemoved: { type: "integer", minimum: 0 },
+                  rejectedByCareerFit: { type: "integer", minimum: 0 }
+                },
+                required: ["careerDirectionsUsed", "generatedJobTitleFamilies", "citiesSearched", "queriesExecuted", "searchLevelsUsed", "candidatesFound", "duplicatesRemoved", "rejectedByCareerFit"]
               }
             },
             required: [
               "checked_at",
-              "jobs"
+              "jobs",
+              "search_diagnostics"
             ]
           }
         }
@@ -207,7 +240,7 @@ export default async function handler(req, res) {
             "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
             JSON.stringify(exclude) +
             (append
-              ? `\n\nDies ist Append-Runde ${searchRound}. Liefere ausschließlich neue konkrete Stellen gemäß der Rundenanweisung; Ziel sind mindestens 6 neue Stellen über den gesamten Klick.`
+              ? `\n\nDies ist Append-Runde ${searchRound}. Beginne mit Level 1. Wenn weniger als 6 neue Kandidaten übrig bleiben, gehe ohne Aufgeben sofort zu Level 2 und nötigenfalls Level 3 über. Liefere ausschließlich neue konkrete Stellen.`
               : "\n\nSuche jetzt in EINEM fokussierten Live-Websearch-Run nach 12–15 passenden aktuellen Stellen. Priorisiere mindestens 7 Berliner Treffer und fülle pragmatisch mit anderen europäischen Städten auf. Gib keine ausgeschlossenen URLs erneut aus.")
         }
       ],

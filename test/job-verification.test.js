@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rankForLocationMix, verifyJob } from "../api/job-verification.js";
+import { rankForLocationMix, verifyJob, verifyJobsWithDiagnostics } from "../api/job-verification.js";
 
 const job = { title: "Junior Event Manager", company: "Example Studio", location: "Berlin", type: "Junior", url: "https://jobs.example.com/jobs/event-manager", source: "https://jobs.example.com/very/long/url", fit_score: 90 };
 const response = (html, overrides = {}) => ({ ok: true, status: 200, url: job.url, headers: { get: () => "text/html" }, text: async () => html, ...overrides });
@@ -27,6 +27,20 @@ test("rejects an explicitly dated listing older than 30 days", async () => {
 test("requires an active application signal when the page has no date", async () => {
   const verified = await verifyJob(job, { fetchImpl: async () => response(page("}").replace("Apply now", "Read more")) });
   assert.equal(verified, null);
+});
+
+test("reports age, closed, verification and exact URL duplicate rejections separately", async () => {
+  const old = { ...job, url: "https://jobs.example.com/jobs/old" };
+  const closed = { ...job, url: "https://jobs.example.com/jobs/closed" };
+  const invalid = { ...job, url: "not-a-url" };
+  const fetchImpl = async url => {
+    if (String(url).endsWith("/old")) return response(page(',"datePosted":"2026-08-01"}'), { url: String(url) });
+    if (String(url).endsWith("/closed")) return response(page("}") + " Job no longer available", { url: String(url) });
+    return response(page(',"datePosted":"2026-09-20"}'), { url: String(url) });
+  };
+  const result = await verifyJobsWithDiagnostics([job, { ...job }, old, closed, invalid], { now: new Date("2026-10-01T12:00:00Z"), fetchImpl });
+  assert.equal(result.jobs.length, 1);
+  assert.deepEqual(result.diagnostics, { rejectedByVerification: 1, rejectedByAge: 1, rejectedAsClosed: 1, duplicatesRemoved: 1 });
 });
 
 test("prioritises Berlin while introducing distinct European cities", () => {
