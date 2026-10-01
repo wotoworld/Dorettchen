@@ -26,6 +26,16 @@ test("append case C accepts six jobs from a later round", () => {
   assert.equal(result.jobs.length, 10);
 });
 
+test("append fallback combines one level-one result with seven expanded Career Direction results", () => {
+  const existing = Array.from({ length: 20 }, (_, i) => job(i + 1));
+  const level1 = [job(21)];
+  const expanded = Array.from({ length: 7 }, (_, i) => job(i + 22));
+  const result = JobFlow.combineAppendRounds(existing, level1, expanded);
+  assert.equal(result.added, 8);
+  assert.equal(result.jobs.length, 28);
+  assert.equal(result.duplicatesRemoved, 0);
+});
+
 test("case D: partial results from both rounds are never discarded below target", () => {
   const existing = Array.from({ length: 20 }, (_, i) => job(i + 1));
   const result = JobFlow.combineAppendRounds(existing, [job(21), job(22)], [job(23)]);

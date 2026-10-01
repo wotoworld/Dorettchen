@@ -14,9 +14,44 @@ const compactList = (values, mapper, limit) => Array.isArray(values)
   ? values.slice(0, limit).map(mapper).filter(Boolean)
   : [];
 
+export const EUROPEAN_SEARCH_CITIES = Object.freeze([
+  "Berlin", "Amsterdam", "Copenhagen", "Paris", "London", "Milan",
+  "Barcelona", "Madrid", "Vienna", "Lisbon", "Stockholm", "Antwerp",
+  "Brussels", "Munich", "Hamburg", "Zurich", "Dublin", "Prague"
+]);
+
+const directionTitle = item => typeof item === "string" ? text(item, 120) : text(item?.title, 120);
+
+// This is deliberately a search brief, not a hard-coded title catalogue. Terra
+// derives context-specific title families from every Career Map direction while
+// searching. Keeping the three levels explicit prevents repeated generic rounds.
+export function buildSearchStrategy(profile, { append = false } = {}) {
+  const directions = compactList(profile?.directions, directionTitle, 10);
+  return {
+    careerDirections: directions,
+    jobTitleFamilyBriefs: directions.map(direction => ({
+      direction,
+      nearTitles: [`${direction} Intern`, `${direction} Assistant`, `${direction} Coordinator`, `Junior ${direction}`],
+      instruction: "derive additional context-specific synonyms and adjacent entry titles from this direction and the Career Map"
+    })),
+    entryRoleTypes: ["Internship", "Intern", "Praktikum", "Praktikant/in", "Trainee", "Assistant", "Coordinator", "Junior", "Working Student", "Werkstudent", "Entry Level"],
+    cities: {
+      tier1: ["Berlin"],
+      tier2: EUROPEAN_SEARCH_CITIES.slice(1)
+    },
+    levels: [
+      { level: 1, scope: "Berlin first", titles: "exact or very close entry-level versions of every Career Map direction" },
+      { level: 2, scope: "Berlin, then Europe", titles: "context-specific synonyms and related entry-level title families derived from every direction" },
+      { level: 3, scope: "Europe wide", titles: "adjacent entry roles sharing the profile's core skills and industry interests" }
+    ],
+    target: append ? 6 : 15,
+    berlinTarget: append ? undefined : 7
+  };
+}
+
 // The complete Career Map is intentionally not sent to web search. This keeps
 // the structured matching signals while dropping long, repeated prose.
-export function buildSearchProfile(profile) {
+export function buildSearchProfile(profile, options = {}) {
   const dna = profile?.career_dna || {};
   const overview = profile?.profile || {};
   const environment = profile?.environment || {};
@@ -49,7 +84,8 @@ export function buildSearchProfile(profile) {
       summary: text(environment.environment_summary, 260)
     },
     search_level: "Praktikum oder Junior-Level",
-    location_preferences: ["Berlin (Schwerpunkt)", "weitere passende europäische Städte"]
+    location_preferences: ["Berlin (Schwerpunkt)", "weitere passende europäische Städte"],
+    search_strategy: buildSearchStrategy(profile, options)
   };
 }
 

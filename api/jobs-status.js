@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { rankForLocationMix, verifyJobs } from "./job-verification.js";
+import { rankForLocationMix, verifyJobsWithDiagnostics } from "./job-verification.js";
 import { PUBLIC_JOB_ERROR, withRateLimitRetry } from "./job-search-utils.js";
 
 const client = new OpenAI({
@@ -111,14 +111,29 @@ export default async function handler(req, res) {
 
       // Search results are candidates only: open and inspect every concrete listing
       // before filtering, ranking and returning anything to the browser.
-      const verifiedCandidates = await verifyJobs(candidates);
+      const verification = await verifyJobsWithDiagnostics(candidates);
+      const verifiedCandidates = verification.jobs;
       result.jobs = rankForLocationMix(verifiedCandidates, 15);
+      const searchDiagnostics = result.search_diagnostics || {};
+      const diagnostics = {
+        careerDirectionsUsed: searchDiagnostics.careerDirectionsUsed || [],
+        generatedJobTitleFamilies: searchDiagnostics.generatedJobTitleFamilies || [],
+        citiesSearched: searchDiagnostics.citiesSearched || [],
+        queriesExecuted: searchDiagnostics.queriesExecuted || [],
+        searchLevelsUsed: searchDiagnostics.searchLevelsUsed || 0,
+        candidatesFound: searchDiagnostics.candidatesFound ?? candidates.length,
+        verifiedJobs: verifiedCandidates.length,
+        duplicatesRemoved: (searchDiagnostics.duplicatesRemoved || 0) + verification.diagnostics.duplicatesRemoved,
+        rejectedByVerification: verification.diagnostics.rejectedByVerification,
+        rejectedByAge: verification.diagnostics.rejectedByAge,
+        rejectedAsClosed: verification.diagnostics.rejectedAsClosed,
+        rejectedByCareerFit: searchDiagnostics.rejectedByCareerFit || 0,
+        newJobsReturned: result.jobs.length
+      };
+      result.search_diagnostics = diagnostics;
       log("verification_completed", {
         searchMode: response.metadata?.search_mode || "single_focused_run",
-        candidatesFound: candidates.length,
-        candidatesVerified: verifiedCandidates.length,
-        candidatesRejected: candidates.length - verifiedCandidates.length,
-        newJobsReturned: result.jobs.length
+        ...diagnostics
       });
       log(`round${searchRound}_completed`, {
         [`round${searchRound}Candidates`]: candidates.length,

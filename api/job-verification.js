@@ -62,11 +62,11 @@ function sourceLabel(job, finalUrl) {
   return known.find(([domain]) => host.includes(domain))?.[1] || host;
 }
 
-export async function verifyJob(job, { now = new Date(), fetchImpl = fetch } = {}) {
+async function inspectJob(job, { now = new Date(), fetchImpl = fetch } = {}) {
   let url;
-  try { url = new URL(job?.url); } catch { return null; }
+  try { url = new URL(job?.url); } catch { return { job: null, reason: "verification" }; }
   const host = url.hostname.toLowerCase();
-  if (!/^https?:$/.test(url.protocol) || GENERIC_PATHS.has(url.pathname.toLowerCase()) || host === "localhost" || host.endsWith(".local") || /^(?:127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(host)) return null;
+  if (!/^https?:$/.test(url.protocol) || GENERIC_PATHS.has(url.pathname.toLowerCase()) || host === "localhost" || host.endsWith(".local") || /^(?:127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(host)) return { job: null, reason: "verification" };
 
   let response;
   try {
@@ -75,38 +75,55 @@ export async function verifyJob(job, { now = new Date(), fetchImpl = fetch } = {
       headers: { "user-agent": "Mozilla/5.0 (compatible; DorettchenJobVerifier/1.0)", accept: "text/html,application/xhtml+xml" },
       signal: AbortSignal.timeout(9000)
     });
-  } catch { return null; }
-  if (!response.ok || response.status === 204) return null;
+  } catch { return { job: null, reason: "verification" }; }
+  if (!response.ok || response.status === 204) return { job: null, reason: "verification" };
   const type = response.headers?.get?.("content-type") || "";
-  if (type && !type.includes("html")) return null;
+  if (type && !type.includes("html")) return { job: null, reason: "verification" };
   const html = (await response.text()).slice(0, 1_500_000);
   const pageText = cleanText(html);
   const lower = normalise(pageText);
-  if (pageText.length < 250 || CLOSED_MARKERS.some(marker => lower.includes(normalise(marker)))) return null;
-  if (!matchesIdentity(pageText, job.title) || !matchesIdentity(pageText, job.company)) return null;
+  if (CLOSED_MARKERS.some(marker => lower.includes(normalise(marker)))) return { job: null, reason: "closed" };
+  if (pageText.length < 250 || !matchesIdentity(pageText, job.title) || !matchesIdentity(pageText, job.company)) return { job: null, reason: "verification" };
 
   const publishedAt = extractPublishedAt(html);
   if (publishedAt) {
     const ageDays = (now.valueOf() - new Date(publishedAt).valueOf()) / 86_400_000;
-    if (ageDays > 30 || ageDays < -2) return null;
+    if (ageDays > 30 || ageDays < -2) return { job: null, reason: "age" };
   } else if (!ACTIVE_MARKERS.some(marker => lower.includes(normalise(marker)))) {
     // Without a trustworthy date, an active application control is mandatory.
-    return null;
+    return { job: null, reason: "verification" };
   }
 
   const finalUrl = response.url || url.href;
-  return { ...job, url: finalUrl, source: sourceLabel(job, finalUrl), published_at: publishedAt, checked_at: now.toISOString() };
+  return { job: { ...job, url: finalUrl, source: sourceLabel(job, finalUrl), published_at: publishedAt, checked_at: now.toISOString() }, reason: null };
+}
+
+export async function verifyJob(job, options = {}) {
+  return (await inspectJob(job, options)).job;
 }
 
 export async function verifyJobs(jobs, options = {}) {
+  return (await verifyJobsWithDiagnostics(jobs, options)).jobs;
+}
+
+export async function verifyJobsWithDiagnostics(jobs, options = {}) {
   const candidates = Array.isArray(jobs) ? jobs.slice(0, 30) : [];
-  const settled = await Promise.all(candidates.map(job => verifyJob(job, options)));
+  const settled = await Promise.all(candidates.map(job => inspectJob(job, options)));
   const seen = new Set();
-  return settled.filter(job => {
-    if (!job) return false;
-    const key = new URL(job.url).href.replace(/\/$/, "").toLowerCase();
-    return !seen.has(key) && seen.add(key);
-  });
+  const diagnostics = { rejectedByVerification: 0, rejectedByAge: 0, rejectedAsClosed: 0, duplicatesRemoved: 0 };
+  const verified = [];
+  for (const result of settled) {
+    if (!result.job) {
+      if (result.reason === "age") diagnostics.rejectedByAge++;
+      else if (result.reason === "closed") diagnostics.rejectedAsClosed++;
+      else diagnostics.rejectedByVerification++;
+      continue;
+    }
+    const key = new URL(result.job.url).href.replace(/\/$/, "").toLowerCase();
+    if (seen.has(key)) diagnostics.duplicatesRemoved++;
+    else { seen.add(key); verified.push(result.job); }
+  }
+  return { jobs: verified, diagnostics };
 }
 
 export function rankForLocationMix(jobs, limit = 15) {

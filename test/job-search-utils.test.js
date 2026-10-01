@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buildSearchProfile,
+  buildSearchStrategy,
   compactExclusions,
   PUBLIC_JOB_ERROR,
   withRateLimitRetry
@@ -23,6 +24,21 @@ test("builds a compact matching profile without long Career Map prose", () => {
   assert.match(serialized, /Kreativität/);
   assert.doesNotMatch(serialized, /xxxxxxxxxx/);
   assert.doesNotMatch(serialized, /description/);
+});
+
+test("turns every Career Map direction into a three-level European title-family brief", () => {
+  const strategy = buildSearchStrategy({ directions: [
+    { title: "Creative Project Management" },
+    { title: "Cultural / Arts Management" },
+    { title: "Luxury / Brand / Experience" }
+  ] }, { append: true });
+  assert.deepEqual(strategy.careerDirections, ["Creative Project Management", "Cultural / Arts Management", "Luxury / Brand / Experience"]);
+  assert.equal(strategy.jobTitleFamilyBriefs.length, 3);
+  assert.ok(strategy.jobTitleFamilyBriefs.every(family => family.nearTitles.some(title => /Intern/.test(title))));
+  assert.deepEqual(strategy.levels.map(item => item.level), [1, 2, 3]);
+  assert.equal(strategy.cities.tier1[0], "Berlin");
+  assert.ok(strategy.cities.tier2.includes("Amsterdam"));
+  assert.equal(strategy.target, 6);
 });
 
 test("exclude context contains only identity fields and removes duplicates", () => {
@@ -95,4 +111,6 @@ test("initial search remains 12–15 while append has two bounded rounds targeti
   assert.match(jobsSource, /APPEND SEARCH – ROUND 2/);
   assert.match(jobsSource, /mindestens 6 NEUE/);
   assert.match(jobsSource, /searchRound\) === 2/);
+  assert.match(jobsSource, /Career Direction × abgeleiteter Jobtitle-Familie × Standort/);
+  assert.match(jobsSource, /search_diagnostics/);
 });
