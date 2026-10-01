@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Die Websuche darf laenger als das kurze Standard-Zeitfenster einer Function
+// laufen. Das Ergebnis wird trotzdem im selben Request zurueckgegeben, damit
+// kein separater OpenAI-Background-Job verloren gehen kann.
+export const maxDuration = 300;
 
 const system = `
 Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
@@ -35,7 +36,9 @@ Bereits gefundene Stellen dürfen NICHT erneut zurückgegeben werden.
 Vergleiche insbesondere URL, Unternehmen und Stellentitel.
 
 QUALITÄT
-Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
+- Liefere 6 bis 10 wirklich passende und aktuell auffindbare Stellen.
+- Suche mit mehreren unterschiedlichen Suchanfragen und prüfe neben Jobbörsen auch die Karriereseiten der Unternehmen.
+- Eine leere Ergebnisliste ist nur zulässig, wenn nach mehreren Suchanfragen keine einzige konkrete Ausschreibung auffindbar war.
 `;
 
 export default async function handler(req, res) {
@@ -50,6 +53,10 @@ export default async function handler(req, res) {
       throw new Error("OPENAI_API_KEY fehlt");
     }
 
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
     const profile = req.body?.profile || {};
 
     const exclude = Array.isArray(req.body?.exclude)
@@ -59,24 +66,21 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
 
     const response = await client.responses.create({
-      model: "gpt-5.6-sol",
+      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
 
       reasoning: {
         effort: "medium"
       },
 
-      background: true,
-      store: true,
-
       tools: [
         {
           type: "web_search",
-          search_context_size: "medium",
+          search_context_size: "high",
           user_location: {
             type: "approximate",
-            country: "AT",
-            city: "Vienna",
-            timezone: "Europe/Vienna"
+            country: "DE",
+            city: "Berlin",
+            timezone: "Europe/Berlin"
           }
         }
       ],
@@ -165,13 +169,40 @@ export default async function handler(req, res) {
         }
       ],
 
-      max_output_tokens: 7000
+      max_output_tokens: 12000
     });
 
-    return res.status(202).json({
-      jobId: response.id,
-      status: response.status || "queued"
-    });
+    if (response.status !== "completed") {
+      throw new Error(
+        response.error?.message ||
+        response.incomplete_details?.reason ||
+        `Die Live-Stellensuche wurde mit Status „${response.status || "unbekannt"}“ beendet.`
+      );
+    }
+
+    let result;
+
+    try {
+      result = JSON.parse(response.output_text || "");
+    } catch {
+      throw new Error("Die Live-Stellensuche hat kein gültiges Ergebnis geliefert.");
+    }
+
+    if (!result || !Array.isArray(result.jobs)) {
+      throw new Error("Das Ergebnis der Live-Stellensuche ist unvollständig.");
+    }
+
+    result.jobs = result.jobs
+      .filter(job =>
+        job &&
+        typeof job.title === "string" &&
+        typeof job.company === "string" &&
+        typeof job.url === "string" &&
+        /^https?:\/\//i.test(job.url)
+      )
+      .slice(0, 15);
+
+    return res.status(200).json(result);
 
   } catch (error) {
     console.error("JOBS START ERROR:", error);

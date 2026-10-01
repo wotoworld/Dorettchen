@@ -586,6 +586,12 @@ try{
 
   const x=JSON.parse(localStorage.getItem('doroCD')||'null');
   if(x)s={...s,...x};
+  // Laufende Requests ueberleben einen Reload nicht. Ein persistiertes
+  // Loading-Flag wuerde die Suche deshalb dauerhaft blockieren.
+  if(s.jobsLoading)s.jobsLoading=false;
+  // Eine als "geladen" gespeicherte leere Liste darf einen neuen Versuch
+  // beim naechsten Besuch nicht verhindern.
+  if(s.jobsLoaded&&(!Array.isArray(s.jobs)||!s.jobs.length))s.jobsLoaded=false;
 }catch{}
 const save=()=>{try{localStorage.setItem('doroCD',JSON.stringify(s))}catch{}};
   function resetTestData(){
@@ -780,17 +786,22 @@ async function loadJobs(append=false){
     let result=null;
 
     if(startResponse.jobId){
-      for(let attempt=0;attempt<300;attempt++){
+      for(let attempt=0;attempt<90;attempt++){
         await new Promise(resolve=>setTimeout(resolve,2000));
 
         let statusResponse=null;
         for(let retry=0;retry<3;retry++){
           try{
             const r=await fetch('/api/jobs-status?jobId='+encodeURIComponent(startResponse.jobId),{cache:'no-store'});
-            if(!r.ok)throw Error(await r.text()||`HTTP ${r.status}`);
-            statusResponse=await r.json();
+            const payload=await r.json().catch(()=>null);
+            if(!r.ok){
+              if(payload?.status==='error')throw Object.assign(Error(payload.error||'Die Stellensuche ist fehlgeschlagen.'),{terminal:true});
+              throw Error(payload?.error||`HTTP ${r.status}`);
+            }
+            statusResponse=payload;
             break;
           }catch(e){
+            if(e.terminal)throw e;
             if(retry<2)await new Promise(resolve=>setTimeout(resolve,1000));
           }
         }
