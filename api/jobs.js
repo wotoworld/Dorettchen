@@ -7,26 +7,49 @@ const client = new OpenAI({
 const system = `
 Du bist ein Live-Praktikums- und Job-Finder für eine Career-Discovery-App.
 
-Deine Aufgabe:
-Finde 12 bis 15 AKTUELL auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
+DEINE AUFGABE
+
+Finde konkrete, AKTUELL auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
+
+Die Suche muss auf einer echten Live-Websuche basieren.
 
 WICHTIG:
-- Nutze zwingend die Websuche.
-- Suche live im Internet.
-- Bevorzuge offizielle Karriere-/Bewerbungsseiten von Unternehmen und seriöse Jobplattformen.
-- Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich in der Websuche gefunden hast.
-- Erfinde niemals Unternehmen, Stellen, URLs oder Anforderungen.
-- Bevorzuge ausgeschriebene, aktuell erreichbare Stellen.
-- Wenn du erkennst, dass eine Ausschreibung geschlossen oder abgelaufen ist, gib sie nicht zurück.
-- Wenn kein konkreter Bewerbungslink auffindbar ist, gib die Stelle nicht zurück.
-- Suche nicht nur nach exakt einem Beruf, sondern nach mehreren passenden Richtungen aus dem Profil.
-- Berücksichtige insbesondere Standort, Branche, Kreativität, Menschenkontakt, Events, Design, Kunst, Reisen, Marken, Kommunikation, Strategie und Internationalität, soweit sie zum Profil passen.
-- Wenn der Standort im Profil fehlt, bevorzuge Berlin und danach andere große europäische Städte.
-- Erkläre bei jeder Stelle kurz, warum sie zum Profil passt.
-- Verwende das heutige Datum und behandle Aktualität als wichtig.
-- Wenn bereits gefundene Stellen übergeben wurden, gib diese nicht erneut zurück. Suche stattdessen andere konkrete Ausschreibungen.
 
-Gib ausschließlich valides JSON zurück:
+- Nutze zwingend die Websuche.
+- Suche wirklich im aktuellen Internet.
+- Verwende keine erfundenen Stellen.
+- Verwende keine erfundenen Unternehmen.
+- Verwende keine erfundenen URLs.
+- Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
+- Bevorzuge direkte Bewerbungsseiten.
+- Seriöse Jobplattformen sind ebenfalls erlaubt.
+- Wenn eine Stelle offensichtlich geschlossen oder abgelaufen ist, gib sie nicht zurück.
+- Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
+- Suche nicht nur nach einem einzigen Beruf.
+- Suche mehrere Richtungen, die zum Career-Profil passen.
+- Berücksichtige insbesondere die im Profil erkennbaren Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
+- Wenn Berlin als Standortpräferenz vorhanden ist, suche zuerst in Berlin.
+- Danach können passende europäische Städte berücksichtigt werden.
+- Bevorzuge Stellen, die für das Profil tatsächlich nachvollziehbar relevant sind.
+- Verwende das aktuelle Datum.
+- Aktualität ist wichtig.
+
+BEREITS GEFUNDENE STELLEN
+
+Wenn bereits gefundene Stellen übergeben werden, dürfen diese NICHT erneut zurückgegeben werden.
+
+Vergleiche insbesondere:
+- URL
+- Unternehmen
+- Stellentitel
+
+Suche stattdessen andere konkrete Ausschreibungen.
+
+AUSGABE
+
+Gib ausschließlich valides JSON zurück.
+
+Struktur:
 
 {
   "checked_at": "YYYY-MM-DD",
@@ -44,7 +67,35 @@ Gib ausschließlich valides JSON zurück:
   ]
 }
 
-Die URL muss direkt zu der gefundenen Ausschreibung oder zur konkreten Bewerbungsseite führen.
+REGELN FÜR DIE EINZELNEN FELDER
+
+title:
+Der tatsächliche Titel der Ausschreibung.
+
+company:
+Das tatsächliche Unternehmen.
+
+location:
+Der tatsächliche Standort.
+
+type:
+Zum Beispiel "Praktikum", "Internship", "Werkstudent", "Junior" etc.
+
+url:
+Direkter Link zur konkreten Ausschreibung oder Bewerbungsseite.
+
+description:
+Kurze sachliche Zusammenfassung der tatsächlich gefundenen Ausschreibung.
+
+why_fit:
+Kurze, konkrete Erklärung, welche Aspekte des übergebenen Career-Profils mit der Stelle zusammenpassen.
+
+source:
+Name der Website oder Plattform, auf der die Ausschreibung gefunden wurde.
+
+ERFINDUNGEN SIND NICHT ERLAUBT.
+
+Wenn du weniger als 12 wirklich passende und aktuell auffindbare Stellen findest, gib lieber weniger Stellen zurück, statt schlechte oder erfundene Treffer zu erzeugen.
 `;
 
 export default async function handler(req, res) {
@@ -55,21 +106,62 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY fehlt");
+    }
+
     const profile = req.body?.profile || {};
 
     const exclude = Array.isArray(req.body?.exclude)
-      ? req.body.exclude.filter(Boolean).slice(0, 100)
+      ? req.body.exclude
+          .filter(Boolean)
+          .slice(0, 100)
       : [];
 
-    const r = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
-      reasoning: {
-        effort: "high"
+    const today = new Date().toISOString().slice(0, 10);
+
+    const input = [
+      {
+        role: "system",
+        content: system
       },
+      {
+        role: "user",
+        content:
+          "HEUTIGES DATUM:\n" +
+          today +
+          "\n\n" +
+          "CAREER-PROFIL:\n" +
+          JSON.stringify(profile) +
+          "\n\n" +
+          "BEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
+          JSON.stringify(exclude) +
+          "\n\n" +
+          "Suche jetzt live im Internet nach weiteren passenden aktuellen Stellen."
+      }
+    ];
+
+    /*
+     * Die eigentliche Suche läuft als Background-Response.
+     *
+     * Dadurch bleibt der Browser-Request nicht minutenlang offen.
+     * Das Frontend bekommt sofort eine responseId zurück und kann
+     * anschließend /api/jobs-status abfragen.
+     */
+    const response = await client.responses.create({
+      model: "gpt-5.6-sol",
+
+      reasoning: {
+        effort: "medium"
+      },
+
+      background: true,
+      store: true,
+
       tools: [
         {
           type: "web_search",
-          search_context_size: "high",
+          search_context_size: "medium",
           user_location: {
             type: "approximate",
             country: "AT",
@@ -78,39 +170,26 @@ export default async function handler(req, res) {
           }
         }
       ],
+
       tool_choice: "required",
-      input: [
-        {
-          role: "system",
-          content: system
-        },
-        {
-          role: "user",
-          content:
-            "Hier ist das Career-Profil:\n\n" +
-            JSON.stringify(profile) +
-            "\n\nBereits gefundene Stellen, die NICHT erneut zurückgegeben werden sollen:\n" +
-            JSON.stringify(exclude) +
-            "\n\nSuche jetzt live nach weiteren passenden aktuellen Stellen."
-        }
-      ]
+
+      input,
+
+      max_output_tokens: 7000
     });
 
-    const result = JSON.parse(r.output_text);
-
-    if (!Array.isArray(result.jobs)) {
-      throw new Error("Ungültiges Stellenformat");
-    }
-
-    result.jobs = result.jobs
-      .filter(j => j && j.title && j.company && j.url)
-      .slice(0, 15);
-
-    return res.status(200).json(result);
+    return res.status(202).json({
+      jobId: response.id,
+      status: response.status || "queued"
+    });
 
   } catch (error) {
+    console.error("JOBS START ERROR:", error);
+
     return res.status(500).json({
-      error: error.message || "Live-Stellensuche fehlgeschlagen."
+      error:
+        error.message ||
+        "Die Live-Stellensuche konnte nicht gestartet werden."
     });
   }
 }
