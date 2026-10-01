@@ -66,7 +66,10 @@ export default async function handler(req, res) {
       throw new Error("OPENAI_API_KEY fehlt");
     }
 
-    const profile = req.body?.profile || {};
+    const profile = req.body?.profile;
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
+      return res.status(400).json({ error: "Für die Live-Suche wird eine fertige Career Map benötigt." });
+    }
 
     const exclude = Array.isArray(req.body?.exclude)
       ? req.body.exclude.filter(Boolean).slice(0, 100)
@@ -77,7 +80,7 @@ export default async function handler(req, res) {
     log("openai_create_started");
 
     const response = await client.responses.create({
-      model: "gpt-5.6-sol",
+      model: process.env.OPENAI_MODEL || "gpt-5.6-sol",
 
       reasoning: {
         effort: "medium"
@@ -92,9 +95,9 @@ export default async function handler(req, res) {
           search_context_size: "medium",
           user_location: {
             type: "approximate",
-            country: "AT",
-            city: "Vienna",
-            timezone: "Europe/Vienna"
+            country: "DE",
+            city: "Berlin",
+            timezone: "Europe/Berlin"
           }
         }
       ],
