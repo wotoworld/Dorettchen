@@ -49,3 +49,54 @@ test("G: fewer results are returned only after the full two-phase budget", () =>
   assert.equal(state.done,false); add(state,[]);
   assert.equal(state.done,true); assert.equal(state.stopReason,"SEARCH_BUDGET_EXHAUSTED"); assert.equal(state.diagnostics.searchCallsExecuted,4); assert.equal(JobFlow.collectorResult(state).length,2);
 });
+
+test("manual stop keeps partial results and prevents every later phase", () => {
+  const state = JobFlow.createJobCollector(profile(4));
+  add(state, [1, 2, 3, 4]);
+  const partial = JobFlow.collectorResult(state);
+  JobFlow.requestCollectorStop(state);
+
+  assert.equal(state.done, true);
+  assert.equal(state.stopReason, "USER_REQUESTED");
+  assert.equal(JobFlow.nextCollectorTask(state), null);
+  assert.deepEqual(JobFlow.collectorResult(state), partial);
+  JobFlow.recordCollectorSearch(state, [job(5)]);
+  assert.deepEqual(JobFlow.collectorResult(state), partial);
+});
+
+test("without a manual stop the collector continues toward twelve and six Berlin", () => {
+  const state = JobFlow.createJobCollector(profile(4));
+  add(state, [1, 2, 3, 4]);
+  assert.equal(state.done, false);
+  assert.ok(JobFlow.nextCollectorTask(state));
+  add(state, [5, 6]);
+  add(state, [7, 8, 9, 10, 11, 12], "Paris");
+  assert.equal(state.done, true);
+  assert.equal(state.stopReason, "TARGET_REACHED");
+});
+
+test("twelve jobs without six Berlin trigger only the reserved Berlin top-up budget", () => {
+  const state = JobFlow.createJobCollector(profile(2));
+  add(state, [1]); add(state, []);
+  add(state, [2, 3, 4, 5, 6, 7], "Paris");
+  add(state, [8, 9, 10, 11, 12], "Paris");
+  assert.equal(state.phase, "berlin");
+  assert.equal(state.done, false);
+  add(state, [13, 14]);
+  assert.equal(state.done, false);
+  add(state, [15, 16, 17]);
+  assert.equal(state.done, true);
+  assert.equal(state.stopReason, "TARGET_REACHED");
+});
+
+test("a fresh click can create an independent batch after a stopped batch", () => {
+  const stopped = JobFlow.createJobCollector(profile(2));
+  add(stopped, [1, 2]);
+  JobFlow.requestCollectorStop(stopped);
+  const nextBatch = JobFlow.createJobCollector(profile(2), JobFlow.collectorResult(stopped));
+  assert.equal(nextBatch.stopRequested, false);
+  assert.equal(nextBatch.done, false);
+  assert.ok(JobFlow.nextCollectorTask(nextBatch));
+  add(nextBatch, [3, 4]);
+  assert.deepEqual(JobFlow.collectorResult(nextBatch).map(item => item.title), ["Role 3", "Role 4"]);
+});

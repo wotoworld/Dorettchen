@@ -78,6 +78,7 @@
     return {
       targetTotal: JOB_TARGET_TOTAL,
       targetBerlin: JOB_TARGET_BERLIN,
+      maxSearchCalls: directions.length * 2 + Math.min(2, directions.length),
       directions,
       phase: "berlin",
       directionIndex: 0,
@@ -89,13 +90,15 @@
         berlinSearchCalls: 0, europeSearchCalls: 0,
         rawCandidatesFound: 0, verifiedCandidates: 0, duplicatesRemoved: 0
       },
+      stopRequested: false,
+      berlinTopUp: false,
       done: directions.length === 0,
       stopReason: directions.length === 0 ? "SEARCH_BUDGET_EXHAUSTED" : null
     };
   }
 
   function nextCollectorTask(state) {
-    if (!state || state.done || !state.directions?.length) return null;
+    if (!state || state.done || state.stopRequested || !state.directions?.length) return null;
     return {
       phase: state.phase,
       direction: state.directions[state.directionIndex],
@@ -109,7 +112,7 @@
   }
 
   function recordCollectorSearch(state, incoming, searchDiagnostics = {}) {
-    if (!state || state.done) return state;
+    if (!state || state.done || state.stopRequested) return state;
     const task = nextCollectorTask(state);
     const raw = Array.isArray(incoming) ? incoming : [];
     const baseline = [...state.excluded, ...state.jobs];
@@ -129,15 +132,29 @@
     const berlinCount = state.jobs.filter(isBerlinJob).length;
     if (state.jobs.length >= state.targetTotal && berlinCount >= state.targetBerlin) {
       state.done = true; state.stopReason = "TARGET_REACHED";
+    } else if (state.jobs.length >= state.targetTotal && berlinCount < state.targetBerlin && state.phase === "europe") {
+      // Once the total target is met, spend only the reserved safety budget on
+      // Berlin rather than continuing broad European searches.
+      state.phase = "berlin"; state.directionIndex = 0; state.berlinTopUp = true;
+    } else if (state.berlinTopUp && state.diagnostics.searchCallsExecuted >= state.maxSearchCalls) {
+      state.done = true; state.stopReason = "SEARCH_BUDGET_EXHAUSTED";
     } else if (state.phase === "berlin" && berlinCount >= state.targetBerlin) {
       state.phase = "europe"; state.directionIndex = 0;
     } else {
       state.directionIndex++;
       if (state.directionIndex >= state.directions.length) {
-        if (state.phase === "berlin") { state.phase = "europe"; state.directionIndex = 0; }
+        if (state.phase === "berlin" && !state.berlinTopUp) { state.phase = "europe"; state.directionIndex = 0; }
         else { state.done = true; state.stopReason = "SEARCH_BUDGET_EXHAUSTED"; }
       }
     }
+    return state;
+  }
+
+  function requestCollectorStop(state) {
+    if (!state || state.done) return state;
+    state.stopRequested = true;
+    state.done = true;
+    state.stopReason = "USER_REQUESTED";
     return state;
   }
 
@@ -181,5 +198,5 @@
     return { outcome: "waiting", pollCount: maxPolls, lastStatus };
   }
 
-  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, combineAppendRounds, createJobCollector, nextCollectorTask, recordCollectorSearch, collectorResult, isBerlinJob, invalidateStaleSearch, pollBackgroundJob });
+  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, combineAppendRounds, createJobCollector, nextCollectorTask, recordCollectorSearch, requestCollectorStop, collectorResult, isBerlinJob, invalidateStaleSearch, pollBackgroundJob });
 })(globalThis);
