@@ -93,7 +93,7 @@ test("unversioned legacy search ids are stale and the current version is persist
   assert.equal(legacy.jobsJobId, null);
 
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(source, /JOBS_SEARCH_VERSION=4/);
+  assert.match(source, /JOBS_SEARCH_VERSION=5/);
   assert.match(source, /s\.jobsJobId=data\.jobId;s\.jobsSearchVersion=JOBS_SEARCH_VERSION;save\(\)/);
   assert.doesNotMatch(source, /cancel.*jobsJobId|jobsJobId.*cancel/i);
 });
@@ -109,7 +109,8 @@ test("append UI exposes no-results and friendly error retry states", async () =>
 test("reload resumes a persisted job while a completed run is cleared before a new click", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(source, /if\(s\.jobsJobId&&!s\.jobsPollingPaused&&!jobsPollingActive\)setTimeout\(\(\)=>resumeJobsPolling\(\),80\)/);
-  assert.match(source, /s\.jobs=merged\.jobs;s\.jobsLoaded=true;s\.jobsLoading=false;s\.jobsJobId=null;s\.jobsSearchVersion=null;s\.jobsPollingPaused=false/);
+  assert.match(source, /s\.jobs=JobFlow\.appendJobs\(Array\.isArray\(s\.jobs\)\?s\.jobs:\[\],batch\)\.jobs/);
+  assert.match(source, /s\.jobsLoaded=true;s\.jobsLoading=false;s\.jobsJobId=null;s\.jobsSearchVersion=null;s\.jobsPollingPaused=false/);
   assert.match(source, /s\.jobsFlowId=.*randomUUID/);
 });
 
@@ -119,6 +120,16 @@ test("every initial and append click uses the persisted multi-call collector", a
   assert.match(source, /JobFlow\.recordCollectorSearch\(s\.jobsCollector,received,/);
   assert.match(source, /startNextCollectorSearch/);
   assert.doesNotMatch(source, /pending\.length<6/);
+});
+
+test("running UI exposes manual stop and persists each completed phase", async () => {
+  const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(source, />Suche beenden</);
+  assert.match(source, /onclick="stopJobsSearch\(\)"/);
+  assert.match(source, /JobFlow\.recordCollectorSearch\(s\.jobsCollector,received/);
+  assert.match(source, /persistCollectorProgress\(\)/);
+  assert.match(source, /if\(s\.jobsStopRequested\|\|s\.jobsCollector\?\.stopRequested\)return/);
+  assert.match(source, /cancelJobsRequest\(jobId\)/);
 });
 
 test("a background job still running beyond the polling window is preserved for a later retry", async () => {
