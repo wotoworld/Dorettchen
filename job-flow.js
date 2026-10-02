@@ -58,6 +58,95 @@
     return appendJobs(existing, [...(Array.isArray(round1) ? round1 : []), ...(Array.isArray(round2) ? round2 : [])]);
   }
 
+  const JOB_TARGET_TOTAL = 12;
+  const JOB_TARGET_BERLIN = 6;
+
+  function isBerlinJob(job) {
+    return /\bberlin\b/i.test(String(job?.location || ""));
+  }
+
+  function directionTitles(profile) {
+    return (Array.isArray(profile?.directions) ? profile.directions : [])
+      .map(item => typeof item === "string" ? item : item?.title)
+      .map(value => String(value || "").replace(/\s+/g, " ").trim().slice(0, 120))
+      .filter(Boolean)
+      .slice(0, 10);
+  }
+
+  function createJobCollector(profile, excluded = []) {
+    const directions = directionTitles(profile);
+    return {
+      targetTotal: JOB_TARGET_TOTAL,
+      targetBerlin: JOB_TARGET_BERLIN,
+      directions,
+      phase: "berlin",
+      directionIndex: 0,
+      jobs: [],
+      excluded: dedupeJobs(excluded),
+      diagnostics: {
+        careerMapJobCardsAvailable: directions.length,
+        careerMapJobCardsUsed: [], searchCallsExecuted: 0,
+        berlinSearchCalls: 0, europeSearchCalls: 0,
+        rawCandidatesFound: 0, verifiedCandidates: 0, duplicatesRemoved: 0
+      },
+      done: directions.length === 0,
+      stopReason: directions.length === 0 ? "SEARCH_BUDGET_EXHAUSTED" : null
+    };
+  }
+
+  function nextCollectorTask(state) {
+    if (!state || state.done || !state.directions?.length) return null;
+    return {
+      phase: state.phase,
+      direction: state.directions[state.directionIndex],
+      directionIndex: state.directionIndex,
+      locations: state.phase === "berlin" ? ["Berlin"] : [
+        "Berlin", "Amsterdam", "Copenhagen", "Paris", "London", "Milan",
+        "Barcelona", "Madrid", "Vienna", "Lisbon", "Stockholm", "Brussels",
+        "Antwerp", "Hamburg", "Munich"
+      ]
+    };
+  }
+
+  function recordCollectorSearch(state, incoming, searchDiagnostics = {}) {
+    if (!state || state.done) return state;
+    const task = nextCollectorTask(state);
+    const raw = Array.isArray(incoming) ? incoming : [];
+    const baseline = [...state.excluded, ...state.jobs];
+    const merged = appendJobs(baseline, raw);
+    let additions = merged.jobs.slice(baseline.length);
+    // Berlin searches cannot accidentally satisfy their quota with a model's
+    // out-of-area result. Europe searches may also find additional Berlin jobs.
+    if (state.phase === "berlin") additions = additions.filter(isBerlinJob);
+    state.jobs.push(...additions);
+    state.diagnostics.searchCallsExecuted++;
+    state.diagnostics[state.phase === "berlin" ? "berlinSearchCalls" : "europeSearchCalls"]++;
+    state.diagnostics.rawCandidatesFound += Number(searchDiagnostics.rawJobsReturned ?? searchDiagnostics.candidatesFound ?? raw.length) || 0;
+    state.diagnostics.verifiedCandidates += Number(searchDiagnostics.verifiedJobs ?? raw.length) || 0;
+    state.diagnostics.duplicatesRemoved += (Number(searchDiagnostics.duplicatesRemoved) || 0) + raw.length - additions.length;
+    if (!state.diagnostics.careerMapJobCardsUsed.includes(task.direction)) state.diagnostics.careerMapJobCardsUsed.push(task.direction);
+
+    const berlinCount = state.jobs.filter(isBerlinJob).length;
+    if (state.jobs.length >= state.targetTotal && berlinCount >= state.targetBerlin) {
+      state.done = true; state.stopReason = "TARGET_REACHED";
+    } else if (state.phase === "berlin" && berlinCount >= state.targetBerlin) {
+      state.phase = "europe"; state.directionIndex = 0;
+    } else {
+      state.directionIndex++;
+      if (state.directionIndex >= state.directions.length) {
+        if (state.phase === "berlin") { state.phase = "europe"; state.directionIndex = 0; }
+        else { state.done = true; state.stopReason = "SEARCH_BUDGET_EXHAUSTED"; }
+      }
+    }
+    return state;
+  }
+
+  function collectorResult(state) {
+    const berlin = state.jobs.filter(isBerlinJob);
+    const elsewhere = state.jobs.filter(job => !isBerlinJob(job));
+    return [...berlin.slice(0, JOB_TARGET_BERLIN), ...berlin.slice(JOB_TARGET_BERLIN), ...elsewhere].slice(0, JOB_TARGET_TOTAL);
+  }
+
   function invalidateStaleSearch(state, currentVersion) {
     if (!state?.jobsJobId || state.jobsSearchVersion === currentVersion) return state;
     return {
@@ -92,5 +181,5 @@
     return { outcome: "waiting", pollCount: maxPolls, lastStatus };
   }
 
-  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, combineAppendRounds, invalidateStaleSearch, pollBackgroundJob });
+  root.JobFlow = Object.freeze({ canonicalUrl, identityKeys, dedupeJobs, appendJobs, combineAppendRounds, createJobCollector, nextCollectorTask, recordCollectorSearch, collectorResult, isBerlinJob, invalidateStaleSearch, pollBackgroundJob });
 })(globalThis);

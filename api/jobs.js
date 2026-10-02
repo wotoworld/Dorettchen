@@ -7,53 +7,19 @@ const client = new OpenAI({
 });
 
 const system = `
-Du bist der SEARCH-Schritt einer Live-Praktikums- und Job-Pipeline. Danach prüft der Server jede konkrete Seite (VERIFY → FILTER → RANK → RENDER).
+Du bist ein fokussiertes Live-Websuchwerkzeug für konkrete Einstiegsstellen. Die Career Map hat die Karriereanalyse bereits abgeschlossen.
 
-DEINE AUFGABE
-Finde konkrete, aktuell auffindbare Praktika oder Junior-Stellen, die möglichst gut zum übergebenen Career-Profil passen.
+Suche ausschließlich für die übergebene Career-Map-Richtung und die übergebenen Standorte. Nutze den exakten Titel und höchstens vier offensichtliche Einstiegsvarianten (Intern/Praktikum, Assistant, Coordinator, Junior). Leite keine neuen Branchen, Persönlichkeitsmerkmale oder abstrakten Karrierepfade her.
 
-Die Suche muss auf einer echten Live-Websuche basieren.
-
-WICHTIG:
-- Nutze zwingend die Websuche.
-- Suche wirklich im aktuellen Internet.
-- Verwende keine erfundenen Stellen.
-- Verwende keine erfundenen Unternehmen.
-- Verwende keine erfundenen URLs.
-- Gib nur Stellen zurück, deren konkrete Ausschreibung du tatsächlich über die Websuche gefunden hast.
-- Bevorzuge direkte Bewerbungsseiten.
-- Seriöse Jobplattformen sind ebenfalls erlaubt.
-- Führe genau eine fokussierte Recherche mit höchstens drei Suchlevels durch. Sammle Kandidaten effizient und ohne redundante Suchen. Öffne nur vielversprechende Treffer und jede URL höchstens einmal; prüfe dabei die KONKRETE Ausschreibungsseite, ein Suchsnippet allein genügt nie.
-- Wenn eine Stelle geschlossen, abgelaufen, entfernt oder nicht mehr bewerbbar ist, gib sie nicht zurück.
-- Bevorzuge direkte Unternehmensseiten und ATS wie Greenhouse, Lever, Workday, Personio, JOIN und SmartRecruiters.
-- Wenn keine konkrete Bewerbungsseite oder konkrete Ausschreibung auffindbar ist, gib die Stelle nicht zurück.
-- Primäre Suchbasis ist search_strategy.careerDirections. Sie stammt direkt aus dem Career-Map-Bereich „Richtungen zum Erkunden“. Verwende JEDE Richtung.
-- Erzeuge vor der Websuche pro Richtung eine kompakte, kontextspezifische Jobtitle-Familie: nahe Einstiegsversionen, echte Synonyme und verwandte Rollen. Wiederhole nicht bloß den exakten Richtungstitel und nutze keine statische Universalliste.
-- Arbeite die Search Matrix aus Career Direction × abgeleiteter Jobtitle-Familie × Standort in dieser Reihenfolge ab: Level 1 nahe Rollen in Berlin; Level 2 verwandte Familien in Berlin und anschließend Europa; Level 3 angrenzende Einstiegsrollen mit denselben Fähigkeiten/Brancheninteressen europaweit. Stoppe, sobald das Ergebnisziel erreicht ist.
-- Zulässig sind Internship/Intern/Praktikum/Praktikant-in, fachlich passende Trainees, Assistant, Coordinator, Junior, Working Student/Werkstudent und Entry Level. Schließe Senior-, Lead-, Head- und Rollen mit offensichtlich mehrjähriger Erfahrung aus.
-- Berücksichtige Interessen, Fähigkeiten, Arbeitsweisen, Brancheninteressen und Standortpräferenzen.
-- Priorisiere Berlin, fülle aber zügig mit passenden europäischen Städten auf (z. B. Amsterdam, Copenhagen, London, Milan, Barcelona, Madrid, Paris, Lisbon, Vienna, Stockholm, Antwerp), wenn dort nicht genug hochwertige Treffer verfügbar sind.
-- Verwende das aktuelle Datum.
-- Ein belastbares Veröffentlichungs-/Aktualisierungsdatum darf höchstens 30 Tage zurückliegen. Erfinde kein Datum. Fehlt es, muss eine aktive Bewerbungsfunktion eindeutig sichtbar sein.
-- Liefere 3–5 informative Sätze zu konkreten Aufgaben, Team/Projekt und Branche sowie einen spezifischen Profilbezug, ausschließlich aus vorhandenen Profildaten.
-
-SEARCH-DIAGNOSTIK
-Dokumentiere im JSON wahrheitsgemäß die tatsächlich verwendeten Career Directions, erzeugten Titel je Richtung, durchsuchten Städte und ausgeführten Webqueries. candidatesFound zählt alle gesichteten konkreten Ausschreibungen vor Auswahl, duplicatesRemoved nur identische URL bzw. exakt Unternehmen+Titel+Ort, rejectedByCareerFit die vor der Server-Verifikation fachlich verworfenen Kandidaten. Keine Schätzwerte erfinden.
-
-BEREITS GEFUNDENE STELLEN
-Die Ausschlussliste beschreibt ausschließlich konkrete Stellenidentitäten. Schließe primär dieselbe normalisierte URL aus, sekundär exakt dieselbe Kombination aus Unternehmen, Titel und Standort. Unternehmen, Domain, Stadt, Jobfamilie oder Career Direction bleiben ausdrücklich durchsuchbar. Eine andere Stelle beim selben Unternehmen ist erlaubt.
-
+REGELN
+- Nutze zwingend die Websuche und öffne konkrete Ausschreibungsseiten.
+- Gib nur echte, aktuell erreichbare Einzelanzeigen mit konkreter URL zurück; keine Suchseiten, erfundenen Stellen oder geschlossenen Anzeigen.
+- Geeignet sind Internship, Praktikum, Working Student, Assistant, Coordinator, Junior und Entry Level; keine Senior-, Lead- oder Head-Rollen.
+- Eine fehlende Datumsangabe ist kein Ausschlussgrund, wenn die konkrete Anzeige erkennbar aktiv ist.
+- Die Ausschlussliste sperrt nur dieselbe normalisierte URL oder exakt Unternehmen+Titel+Ort. Andere Stellen desselben Unternehmens bleiben erlaubt.
+- Suche klein und fokussiert. Das Sammeln, Verifizieren, Deduplizieren und Erreichen des Batch-Ziels übernimmt die Anwendung.
+- Beschreibe Aufgaben und Profilbezug knapp und ausschließlich anhand der Rollenrichtung und der Ausschreibung.
 `;
-
-const initialDirective = `
-INITIALSUCHE – ERGEBNISZIEL
-Liefere 12–15 hochwertige konkrete Stellen in diesem einen Suchlauf und höre dann sofort auf. Priorisiere Berlin mit dem Ziel von mindestens 7 Treffern. Die Zahl 12 ist keine harte Mindestbedingung: Sind nach vernünftiger Suche nur 10 oder 11 gute Treffer auffindbar, gib sie sofort zurück. Qualität geht vor Anzahl.`;
-
-const appendDirective = round => round === 2 ? `
-APPEND SEARCH – ROUND 2 (EXPANDED SEARCH)
-Finde neue Stellen, um insgesamt mindestens 6 neue verifizierbare Treffer dieses Klicks zu erreichen. Suche breiter: zusätzliche passende Titel und Synonyme, angrenzende Career Directions, weitere europäische Städte, Unternehmen und seriöse Jobquellen. Berlin bleibt erste Priorität, aber fülle zügig europaweit auf. Prüfe keine ausgeschlossene konkrete URL erneut. Gib alle belastbaren Treffer sofort zurück; Qualität geht vor Zielzahl.` : `
-APPEND SEARCH – ROUND 1 (PRIMARY SEARCH)
-Finde mindestens 6 NEUE verifizierbare Stellen. Die Ausschlussliste zählt nicht zum Ziel. Suche mit Career-Map-Fit, Berlin zuerst und danach passenden europäischen Städten unter allen bestehenden Qualitätsregeln. Höre bei mindestens 6 guten Kandidaten sofort auf. Eine andere Stelle eines bereits vertretenen Unternehmens ist ausdrücklich erlaubt.`;
 
 export default async function handler(req, res) {
   const flowId = req.body?.diagnosticFlowId || req.headers["x-diagnostic-flow-id"] || "missing";
@@ -90,26 +56,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ status: "error", code: "invalid_profile", message: "Für die Live-Suche wird eine fertige Career Map benötigt." });
     }
 
-    const append = req.body?.append === true;
-    const searchProfile = buildSearchProfile(profile, { append });
+    const searchProfile = buildSearchProfile(profile);
     const exclude = compactExclusions(req.body?.exclude);
-    const searchRound = append && Number(req.body?.searchRound) === 2 ? 2 : 1;
+    const directions = searchProfile.search_strategy.careerDirections;
+    const requestedTask = req.body?.searchTask;
+    const direction = String(requestedTask?.direction || "").trim();
+    const phase = requestedTask?.phase === "europe" ? "europe" : "berlin";
+    if (!direction || !directions.includes(direction)) {
+      return res.status(400).json({ status: "error", code: "invalid_search_task", message: "Die Suchrichtung gehört nicht zur Career Map." });
+    }
+    const locations = phase === "berlin" ? ["Berlin"] : searchProfile.search_strategy.cities.europe;
+    const titleFamily = searchProfile.search_strategy.jobTitleFamilyBriefs.find(item => item.direction === direction);
 
     const today = new Date().toISOString().slice(0, 10);
-    const searchMode = append ? `append_round_${searchRound}` : "initial_search";
-    log("openai_create_started", { searchMode, searchRound, existingJobsCount: Math.max(0, Number(req.body?.existingJobsCount) || 0), excludeCount: exclude.length });
+    const searchMode = `collector_${phase}`;
+    log("openai_create_started", { searchMode, direction, locations, existingJobsCount: Math.max(0, Number(req.body?.existingJobsCount) || 0), excludeCount: exclude.length });
 
     const requestId = String(req.body?.searchRequestId || randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 200);
     const response = await withRateLimitRetry(() => client.responses.create({
       model: "gpt-5.6-terra",
 
       reasoning: {
-        effort: "medium"
+        effort: "low"
       },
 
       background: true,
       store: true,
-      metadata: { search_mode: searchMode, search_round: String(searchRound) },
+      metadata: { search_mode: searchMode, career_direction: direction.slice(0, 500), collector_phase: phase },
 
       tools: [
         {
@@ -228,24 +201,20 @@ export default async function handler(req, res) {
       input: [
         {
           role: "system",
-          content: system + (append ? appendDirective(searchRound) : initialDirective)
+          content: system
         },
         {
           role: "user",
           content:
-            "HEUTIGES DATUM:\n" +
-            today +
-            "\n\nCAREER-PROFIL:\n" +
-            JSON.stringify(searchProfile) +
-            "\n\nBEREITS GEFUNDENE STELLEN, DIE NICHT ERNEUT AUSGEGEBEN WERDEN DÜRFEN:\n" +
-            JSON.stringify(exclude) +
-            (append
-              ? `\n\nDies ist Append-Runde ${searchRound}. Beginne mit Level 1. Wenn weniger als 6 neue Kandidaten übrig bleiben, gehe ohne Aufgeben sofort zu Level 2 und nötigenfalls Level 3 über. Liefere ausschließlich neue konkrete Stellen.`
-              : "\n\nSuche jetzt in EINEM fokussierten Live-Websearch-Run nach 12–15 passenden aktuellen Stellen. Priorisiere mindestens 7 Berliner Treffer und fülle pragmatisch mit anderen europäischen Städten auf. Gib keine ausgeschlossenen URLs erneut aus.")
+            `HEUTIGES DATUM: ${today}\n\nCAREER-MAP-JOBCARD: ${direction}\n` +
+            `OFFENSICHTLICHE TITELVARIANTEN: ${JSON.stringify(titleFamily?.nearTitles || [])}\n` +
+            `STANDORTE: ${JSON.stringify(locations)}\n\n` +
+            `BEREITS GEFUNDENE KONKRETE STELLEN: ${JSON.stringify(exclude)}\n\n` +
+            "Finde in dieser einen kleinen Recherche möglichst mehrere aktuelle konkrete Ausschreibungen. Die Anwendung sucht danach bei Bedarf mit der nächsten Jobcard weiter."
         }
       ],
 
-      max_output_tokens: 7000
+      max_output_tokens: 4000
     }, {
       headers: { "Idempotency-Key": `jobs-${requestId}` }
     }), {
@@ -265,7 +234,8 @@ export default async function handler(req, res) {
       jobId: response.id,
       status: response.status || "queued",
       searchMode,
-      searchRound
+      direction,
+      phase
     });
     return res.status(202).json({
       jobId: response.id,

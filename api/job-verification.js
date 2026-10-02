@@ -7,8 +7,11 @@ const CLOSED_MARKERS = [
 
 const ACTIVE_MARKERS = [
   "apply now", "apply for this job", "apply for this position", "submit application",
-  "jetzt bewerben", "bewerben sie sich", "send application", "apply here"
+  "jetzt bewerben", "bewerben sie sich", "send application", "apply here",
+  "start application", "submit your application", "apply to this job", "bewerbung starten"
 ];
+
+const CLIENT_RENDERED_ATS = ["greenhouse.io", "lever.co", "myworkdayjobs.com", "personio.", "smartrecruiters.com", "join.com", "ashbyhq.com"];
 
 const GENERIC_PATHS = new Set(["", "/", "/jobs", "/careers", "/career", "/jobs/", "/careers/"]);
 
@@ -92,8 +95,12 @@ async function inspectJob(job, { now = new Date(), fetchImpl = fetch } = {}) {
   if (publishedAt) {
     const ageDays = (now.valueOf() - new Date(publishedAt).valueOf()) / 86_400_000;
     if (ageDays > 30 || ageDays < -2) return { job: null, reason: "age", publishedAt, ageDays: Math.round(ageDays * 10) / 10 };
-  } else if (!ACTIVE_MARKERS.some(marker => lower.includes(normalise(marker)))) {
-    // Without a trustworthy date, an active application control is mandatory.
+  } else if (!ACTIVE_MARKERS.some(marker => lower.includes(normalise(marker))) &&
+    !/(?:href|action)=["'][^"']*(?:apply|application|bewerb)/i.test(html) &&
+    !CLIENT_RENDERED_ATS.some(domain => host.includes(domain))) {
+    // A trustworthy date is optional. Accept varied application controls and
+    // known client-rendered ATS pages rather than rejecting a live listing just
+    // because its button copy or rendering differs.
     return { job: null, reason: "date_missing_no_active_marker" };
   }
 

@@ -93,7 +93,7 @@ test("unversioned legacy search ids are stale and the current version is persist
   assert.equal(legacy.jobsJobId, null);
 
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(source, /JOBS_SEARCH_VERSION=3/);
+  assert.match(source, /JOBS_SEARCH_VERSION=4/);
   assert.match(source, /s\.jobsJobId=data\.jobId;s\.jobsSearchVersion=JOBS_SEARCH_VERSION;save\(\)/);
   assert.doesNotMatch(source, /cancel.*jobsJobId|jobsJobId.*cancel/i);
 });
@@ -113,12 +113,12 @@ test("reload resumes a persisted job while a completed run is cleared before a n
   assert.match(source, /s\.jobsFlowId=.*randomUUID/);
 });
 
-test("append completion starts at most one expanded second round", async () => {
+test("every initial and append click uses the persisted multi-call collector", async () => {
   const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(source, /if\(round===1&&pending\.length<6\)/);
-  assert.match(source, /s\.jobsRound=2/);
-  assert.doesNotMatch(source, /jobsRound=3|MAX_JOB_SEARCH_ROUNDS/);
-  assert.match(source, /\.\.\.savedJobs,\.\.\.pending/);
+  assert.match(source, /JobFlow\.createJobCollector\(s\.profile,excluded\)/);
+  assert.match(source, /JobFlow\.recordCollectorSearch\(s\.jobsCollector,received,/);
+  assert.match(source, /startNextCollectorSearch/);
+  assert.doesNotMatch(source, /pending\.length<6/);
 });
 
 test("a background job still running beyond the polling window is preserved for a later retry", async () => {
